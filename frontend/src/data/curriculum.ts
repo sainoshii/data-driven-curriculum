@@ -1,7 +1,3 @@
-import demoDataset from './mocks/demo-dataset.json'
-import demoOverview from './mocks/demo-overview.json'
-import schoolOverview from './mocks/demo-overview-s01.json'
-
 export interface Dataset {
   dataset_id: string
   is_demo: boolean
@@ -23,27 +19,40 @@ export interface OverviewData {
   hardest_topics: { topic_id: string; topic_name: string; scores: Scores }[]
 }
 
-// Replace this adapter with POST /api/datasets/demo and
-// GET /api/datasets/{dataset_id}/overview[?school_id=...].
-// Component code depends only on this asynchronous interface.
 export interface CurriculumApi {
-  supportedSchoolIds: readonly string[]
   openDemoDataset(): Promise<Dataset>
   getOverview(datasetId: string, schoolId?: string): Promise<OverviewData>
 }
 
+async function request<T>(path: string, method = 'GET'): Promise<T> {
+  let response: Response
+  try {
+    response = await fetch(path, { method, signal: AbortSignal.timeout(15000) })
+  } catch {
+    throw new Error('Не удалось связаться с сервером. Проверьте, что API запущен, и повторите запрос.')
+  }
+
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null)
+    if (body && typeof body === 'object' && 'message' in body && typeof body.message === 'string') {
+      throw new Error(body.message)
+    }
+    throw new Error(`Сервер недоступен или не смог обработать запрос (HTTP ${response.status}). Попробуйте ещё раз.`)
+  }
+
+  try {
+    return await response.json() as T
+  } catch {
+    throw new Error('Сервер вернул некорректный ответ. Повторите запрос.')
+  }
+}
+
 export const curriculumApi: CurriculumApi = {
-  supportedSchoolIds: [schoolOverview.school_id],
-  async openDemoDataset() {
-    return structuredClone(demoDataset)
+  openDemoDataset() {
+    return request<Dataset>('/api/datasets/demo', 'POST')
   },
-  async getOverview(datasetId, schoolId) {
-    if (datasetId !== demoDataset.dataset_id) {
-      throw new Error('Демонстрационный набор не найден. Откройте демо ещё раз.')
-    }
-    if (schoolId !== undefined && schoolId !== schoolOverview.school_id) {
-      throw new Error('Для этой школы пока нет демонстрационного примера.')
-    }
-    return structuredClone(schoolId === undefined ? demoOverview : schoolOverview)
+  getOverview(datasetId, schoolId) {
+    const query = schoolId ? `?${new URLSearchParams({ school_id: schoolId })}` : ''
+    return request<OverviewData>(`/api/datasets/${encodeURIComponent(datasetId)}/overview${query}`)
   },
 }

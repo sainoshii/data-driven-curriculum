@@ -1,5 +1,4 @@
 import type { Dataset, OverviewData } from './data/curriculum'
-import { curriculumApi } from './data/curriculum'
 
 export interface DemoState {
   dataset: Dataset | null
@@ -13,10 +12,11 @@ const integer = new Intl.NumberFormat('ru-RU')
 const score = (value: number | null) => value === null ? 'Нет данных' : decimal.format(value)
 const percent = (value: number | null) => value === null ? 'Нет данных' : `${decimal.format(value)}%`
 
-export default function Overview({ state, onOpenDemo, onSchoolChange }: {
+export default function Overview({ state, onOpenDemo, onSchoolChange, onRetry }: {
   state: DemoState
   onOpenDemo: () => void
   onSchoolChange: (schoolId: string) => void
+  onRetry: () => void
 }) {
   const { dataset, overview, loading, error } = state
   // Sort before rounding; missing observations must not be treated as zero.
@@ -39,7 +39,7 @@ export default function Overview({ state, onOpenDemo, onSchoolChange }: {
       <div className="welcome-art" aria-hidden="true"><div className="art-grid" /><div className="art-bars"><i /><i /><i /><i /><i /></div><div className="art-label"><span /> Анализ → решение</div></div>
     </section>}
 
-    {error && <p className="error-message" role="alert">{error}</p>}
+    {error && <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" disabled={loading} onClick={onRetry}>Повторить</button></div>}
     <div role="status" className="loading-message">{loading ? 'Загружаем показатели…' : ''}</div>
 
     {dataset && overview ? <section className="overview-results" aria-label="Показатели обзора" aria-busy={loading}>
@@ -50,7 +50,7 @@ export default function Overview({ state, onOpenDemo, onSchoolChange }: {
           <label className="school-filter">Школа
             <select value={overview.school_id ?? ''} onChange={event => onSchoolChange(event.target.value)} disabled={loading}>
               <option value="">Все школы</option>
-              {dataset.school_ids.filter(id => curriculumApi.supportedSchoolIds.includes(id)).map(id => <option key={id} value={id}>{id}</option>)}
+              {dataset.school_ids.map(id => <option key={id} value={id}>{id}</option>)}
             </select>
           </label>
         </div>
