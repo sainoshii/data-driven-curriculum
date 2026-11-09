@@ -1,0 +1,357 @@
+openapi: 3.1.0
+info:
+  title: Data-Driven Curriculum API
+  version: 0.1.0
+  description: Контракт MVP для загрузки результатов, анализа и планирования часов.
+
+paths:
+  /api/datasets/demo:
+    post:
+      operationId: openDemoDataset
+      summary: Открыть синтетический набор
+      responses:
+        '200':
+          description: Готовый демо-набор. Повторный вызов возвращает тот же набор.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dataset' }
+              examples:
+                demo: { externalValue: examples/demo-dataset.json }
+
+  /api/datasets:
+    post:
+      operationId: uploadDataset
+      summary: Загрузить результаты и учебный план
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [results, topics]
+              properties:
+                results: { type: string, format: binary, description: Файл results.csv }
+                topics: { type: string, format: binary, description: Файл topics.csv }
+      responses:
+        '201':
+          description: Новый набор с is_demo равным false
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dataset' }
+        '422': { $ref: '#/components/responses/InvalidInput' }
+
+  /api/datasets/{dataset_id}/overview:
+    parameters:
+      - $ref: '#/components/parameters/DatasetId'
+    get:
+      operationId: getOverview
+      summary: Основные показатели и три самые сложные темы
+      parameters:
+        - $ref: '#/components/parameters/SchoolFilter'
+      responses:
+        '200':
+          description: Обзор набора с учётом фильтра школы
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Overview' }
+              examples:
+                allSchools: { externalValue: examples/demo-overview.json }
+                oneSchool: { externalValue: examples/demo-overview-s01.json }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/InvalidInput' }
+
+  /api/datasets/{dataset_id}/topics:
+    parameters:
+      - $ref: '#/components/parameters/DatasetId'
+    get:
+      operationId: getTopics
+      summary: Показатели по темам и тепловая карта
+      parameters:
+        - $ref: '#/components/parameters/SchoolFilter'
+      responses:
+        '200':
+          description: Темы и ячейки тепловой карты в выбранном срезе
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Topics' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/InvalidInput' }
+
+  /api/datasets/{dataset_id}/textbook-comparison:
+    parameters:
+      - $ref: '#/components/parameters/DatasetId'
+    get:
+      operationId: compareTextbooks
+      summary: Сравнить результаты учебников по выбранной теме
+      parameters:
+        - $ref: '#/components/parameters/SchoolFilter'
+        - name: topic_id
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/Id' }
+      responses:
+        '200':
+          description: Сводки по учебникам и попарные сравнения в сопоставимых группах
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TextbookComparison' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/InvalidInput' }
+
+  /api/datasets/{dataset_id}/plans:
+    parameters:
+      - $ref: '#/components/parameters/DatasetId'
+    post:
+      operationId: createPlan
+      summary: Рассчитать и сохранить проект переноса часов
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                school_id:
+                  $ref: '#/components/schemas/Id'
+                  description: Если поле отсутствует, учитываются все школы.
+            examples:
+              allSchools: { value: {} }
+              oneSchool: { value: { school_id: S01 } }
+      responses:
+        '201':
+          description: Сохранённый план, включая вариант без изменений
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Plan' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/InvalidInput' }
+
+  /api/datasets/{dataset_id}/plans/{plan_id}/export:
+    parameters:
+      - $ref: '#/components/parameters/DatasetId'
+      - name: plan_id
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/Id' }
+    get:
+      operationId: exportPlan
+      summary: Скачать сохранённый план в CSV
+      responses:
+        '200':
+          description: Снимок того же плана, который получил интерфейс
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+              example: 'attachment; filename="plan.csv"'
+          content:
+            text/csv:
+              schema: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  parameters:
+    DatasetId:
+      name: dataset_id
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Id' }
+    SchoolFilter:
+      name: school_id
+      in: query
+      description: Если параметр отсутствует, учитываются все школы.
+      schema: { $ref: '#/components/schemas/Id' }
+
+  responses:
+    NotFound:
+      description: Набор, школа, тема или план не найдены в заданной области запроса
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    InvalidInput:
+      description: Невалидный запрос или CSV
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Id:
+      type: string
+      minLength: 1
+    SelectedSchool:
+      type: [string, 'null']
+      minLength: 1
+      description: null означает, что применён срез по всем школам.
+    Count:
+      type: integer
+      minimum: 0
+    Score:
+      type: number
+      minimum: 0
+      maximum: 100
+
+    Dataset:
+      type: object
+      required: [dataset_id, is_demo, school_ids]
+      properties:
+        dataset_id: { $ref: '#/components/schemas/Id' }
+        is_demo: { type: boolean }
+        school_ids:
+          type: array
+          items: { $ref: '#/components/schemas/Id' }
+          uniqueItems: true
+          description: Все школы набора, включая случаи, когда выбран фильтр.
+
+    Scores:
+      type: object
+      required: [result_count, post_score_avg, below_threshold_pct]
+      properties:
+        result_count:
+          $ref: '#/components/schemas/Count'
+          description: Количество пар ученик–тема в срезе.
+        post_score_avg:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 100
+          description: Средний итоговый балл. null при отсутствии результатов.
+        below_threshold_pct:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 100
+          description: Процент итоговых баллов строго ниже порога. null при отсутствии результатов.
+
+    TopicScores:
+      type: object
+      required: [topic_id, topic_name, scores]
+      properties:
+        topic_id: { $ref: '#/components/schemas/Id' }
+        topic_name: { type: string }
+        scores: { $ref: '#/components/schemas/Scores' }
+
+    Overview:
+      type: object
+      required: [dataset, school_id, mastery_threshold, student_count, scores, hardest_topics]
+      properties:
+        dataset: { $ref: '#/components/schemas/Dataset' }
+        school_id: { $ref: '#/components/schemas/SelectedSchool' }
+        mastery_threshold: { $ref: '#/components/schemas/Score' }
+        student_count:
+          $ref: '#/components/schemas/Count'
+          description: Число уникальных учеников в срезе.
+        scores: { $ref: '#/components/schemas/Scores' }
+        hardest_topics:
+          type: array
+          maxItems: 3
+          items: { $ref: '#/components/schemas/TopicScores' }
+          description: Только темы с результатами, сначала с наибольшей долей ниже порога.
+
+    Topics:
+      type: object
+      required: [dataset_id, school_id, mastery_threshold, topics, heatmap]
+      properties:
+        dataset_id: { $ref: '#/components/schemas/Id' }
+        school_id: { $ref: '#/components/schemas/SelectedSchool' }
+        mastery_threshold: { $ref: '#/components/schemas/Score' }
+        topics:
+          type: array
+          items: { $ref: '#/components/schemas/TopicScores' }
+        heatmap:
+          type: array
+          description: По одной ячейке на пару школа–тема в выбранном срезе.
+          items:
+            type: object
+            required: [school_id, topic_id, scores]
+            properties:
+              school_id: { $ref: '#/components/schemas/Id' }
+              topic_id: { $ref: '#/components/schemas/Id' }
+              scores: { $ref: '#/components/schemas/Scores' }
+
+    TextbookComparison:
+      type: object
+      required: [dataset_id, school_id, topic_id, groups, comparisons]
+      properties:
+        dataset_id: { $ref: '#/components/schemas/Id' }
+        school_id: { $ref: '#/components/schemas/SelectedSchool' }
+        topic_id: { $ref: '#/components/schemas/Id' }
+        groups:
+          type: array
+          items:
+            type: object
+            required: [textbook_id, student_count, pre_score_avg, post_score_avg, gain_avg]
+            properties:
+              textbook_id: { $ref: '#/components/schemas/Id' }
+              student_count: { type: integer, minimum: 1 }
+              pre_score_avg: { $ref: '#/components/schemas/Score' }
+              post_score_avg: { $ref: '#/components/schemas/Score' }
+              gain_avg:
+                type: number
+                description: Средний post_score минус pre_score в баллах.
+        comparisons:
+          type: array
+          description: Одно наблюдаемое сравнение на каждую пару представленных учебников.
+          items:
+            type: object
+            required: [left_textbook_id, right_textbook_id, left_student_count, right_student_count, status, gain_difference]
+            properties:
+              left_textbook_id: { $ref: '#/components/schemas/Id' }
+              right_textbook_id: { $ref: '#/components/schemas/Id' }
+              left_student_count: { $ref: '#/components/schemas/Count' }
+              right_student_count: { $ref: '#/components/schemas/Count' }
+              status: { type: string, enum: [ok, insufficient_data] }
+              gain_difference:
+                type: [number, 'null']
+                description: Сопоставленная разница прироста в баллах, слева минус справа. null при insufficient_data.
+
+    Plan:
+      type: object
+      required: [dataset_id, plan_id, school_id, mastery_threshold, status, explanation, current_total_hours, proposed_total_hours, items, transfers]
+      properties:
+        dataset_id: { $ref: '#/components/schemas/Id' }
+        plan_id: { $ref: '#/components/schemas/Id' }
+        school_id: { $ref: '#/components/schemas/SelectedSchool' }
+        mastery_threshold: { $ref: '#/components/schemas/Score' }
+        status: { type: string, enum: [recommended, no_changes] }
+        explanation: { type: string }
+        current_total_hours: { $ref: '#/components/schemas/Count' }
+        proposed_total_hours: { $ref: '#/components/schemas/Count' }
+        items:
+          type: array
+          items:
+            type: object
+            required: [topic_id, topic_name, current_hours, proposed_hours, delta_hours, scores, reason]
+            properties:
+              topic_id: { $ref: '#/components/schemas/Id' }
+              topic_name: { type: string }
+              current_hours: { $ref: '#/components/schemas/Count' }
+              proposed_hours: { $ref: '#/components/schemas/Count' }
+              delta_hours: { type: integer, description: Предлагаемые часы минус текущие. }
+              scores: { $ref: '#/components/schemas/Scores' }
+              reason: { type: string }
+        transfers:
+          type: array
+          items:
+            type: object
+            required: [from_topic_id, to_topic_id, hours]
+            properties:
+              from_topic_id: { $ref: '#/components/schemas/Id' }
+              to_topic_id: { $ref: '#/components/schemas/Id' }
+              hours: { type: integer, minimum: 1 }
+
+    Error:
+      type: object
+      required: [code, message, details]
+      properties:
+        code:
+          type: string
+          enum: [invalid_request, invalid_csv, dataset_not_found, school_not_found, topic_not_found, plan_not_found]
+        message: { type: string }
+        details:
+          type: array
+          items:
+            type: object
+            required: [message]
+            properties:
+              file: { type: string, enum: [results, topics] }
+              row: { type: integer, minimum: 1, description: Номер записи CSV начиная с заголовка. }
+              field: { type: string }
+              message: { type: string }

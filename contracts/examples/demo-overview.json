@@ -1,0 +1,50 @@
+{
+  "dataset": {
+    "dataset_id": "demo",
+    "is_demo": true,
+    "school_ids": [
+      "S01",
+      "S02",
+      "S03",
+      "S04",
+      "S05"
+    ]
+  },
+  "school_id": null,
+  "mastery_threshold": 60,
+  "student_count": 2000,
+  "scores": {
+    "result_count": 50000,
+    "post_score_avg": 67.5668,
+    "below_threshold_pct": 31.134
+  },
+  "hardest_topics": [
+    {
+      "topic_id": "T08",
+      "topic_name": "Разложение многочлена на множители",
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 49.8315,
+        "below_threshold_pct": 75.5
+      }
+    },
+    {
+      "topic_id": "T11",
+      "topic_name": "Системы линейных уравнений",
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 49.703,
+        "below_threshold_pct": 75.35
+      }
+    },
+    {
+      "topic_id": "T23",
+      "topic_name": "Геометрические доказательства",
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 50.004,
+        "below_threshold_pct": 74.7
+      }
+    }
+  ]
+}
