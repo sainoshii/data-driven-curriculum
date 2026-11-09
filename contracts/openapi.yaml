@@ -74,6 +74,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Topics' }
+              examples:
+                oneSchool: { externalValue: examples/demo-topics-s01.json }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/InvalidInput' }
 
