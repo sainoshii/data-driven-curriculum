@@ -11,6 +11,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from backend.textbooks import TextbookComparison, build_textbook_comparison
 from scripts.generate_demo_data import generate
 
 
@@ -229,4 +230,29 @@ def get_topics(
             for current_school in school_ids
             for topic_id, _ in catalog
         ],
+    )
+
+
+@app.get(
+    "/api/datasets/{dataset_id}/textbook-comparison",
+    operation_id="compareTextbooks",
+    response_model=TextbookComparison,
+    responses={404: {"model": ApiError}, 422: {"model": ApiError}},
+)
+def compare_textbooks(
+    request: Request,
+    dataset_id: str,
+    topic_id: Annotated[str, Query(min_length=1)],
+    school_id: Annotated[str | None, Query(min_length=1)] = None,
+) -> TextbookComparison | JSONResponse:
+    demo: DemoData = request.app.state.demo
+    error = scope_error(demo, dataset_id, school_id)
+    if error is not None:
+        return error_response(404, error)
+    if not demo.topics["topic_id"].eq(topic_id).any():
+        return error_response(404, ApiError(code="topic_not_found", message="Тема не найдена.", details=[]))
+
+    results = demo.results_for_school(school_id)
+    return build_textbook_comparison(
+        results[results["topic_id"] == topic_id], dataset_id=dataset_id, topic_id=topic_id, school_id=school_id
     )
