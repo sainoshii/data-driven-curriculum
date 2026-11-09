@@ -22,6 +22,21 @@ export interface OverviewData {
 export interface CurriculumApi {
   openDemoDataset(): Promise<Dataset>
   getOverview(datasetId: string, schoolId?: string): Promise<OverviewData>
+  getTopics(datasetId: string, schoolId?: string): Promise<TopicsData>
+}
+
+export interface TopicScores {
+  topic_id: string
+  topic_name: string
+  scores: Scores
+}
+
+export interface TopicsData {
+  dataset_id: string
+  school_id: string | null
+  mastery_threshold: number
+  topics: TopicScores[]
+  heatmap: { school_id: string; topic_id: string; scores: Scores }[]
 }
 
 async function request<T>(path: string, method = 'GET'): Promise<T> {
@@ -54,5 +69,9 @@ export const curriculumApi: CurriculumApi = {
   getOverview(datasetId, schoolId) {
     const query = schoolId ? `?${new URLSearchParams({ school_id: schoolId })}` : ''
     return request<OverviewData>(`/api/datasets/${encodeURIComponent(datasetId)}/overview${query}`)
+  },
+  getTopics(datasetId, schoolId) {
+    const query = schoolId ? `?${new URLSearchParams({ school_id: schoolId })}` : ''
+    return request<TopicsData>(`/api/datasets/${encodeURIComponent(datasetId)}/topics${query}`)
   },
 }
