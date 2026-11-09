@@ -1,0 +1,54 @@
+{
+  "dataset_id": "demo",
+  "school_id": null,
+  "topic_id": "T09",
+  "groups": [
+    {
+      "textbook_id": "A",
+      "student_count": 670,
+      "pre_score_avg": 49.144776119402984,
+      "post_score_avg": 75.68507462686567,
+      "gain_avg": 26.540298507462687
+    },
+    {
+      "textbook_id": "B",
+      "student_count": 665,
+      "pre_score_avg": 50.070676691729325,
+      "post_score_avg": 66.6451127819549,
+      "gain_avg": 16.574436090225564
+    },
+    {
+      "textbook_id": "C",
+      "student_count": 665,
+      "pre_score_avg": 49.876691729323305,
+      "post_score_avg": 66.9187969924812,
+      "gain_avg": 17.042105263157893
+    }
+  ],
+  "comparisons": [
+    {
+      "left_textbook_id": "A",
+      "right_textbook_id": "B",
+      "left_student_count": 637,
+      "right_student_count": 639,
+      "status": "ok",
+      "gain_difference": 9.837824621651349
+    },
+    {
+      "left_textbook_id": "A",
+      "right_textbook_id": "C",
+      "left_student_count": 637,
+      "right_student_count": 639,
+      "status": "ok",
+      "gain_difference": 9.443268114396082
+    },
+    {
+      "left_textbook_id": "B",
+      "right_textbook_id": "C",
+      "left_student_count": 639,
+      "right_student_count": 639,
+      "status": "ok",
+      "gain_difference": -0.4336308577802071
+    }
+  ]
+}

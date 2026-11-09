@@ -28,7 +28,7 @@ python3 scripts/generate_demo_data.py
 
 В каждой школе по 400 учеников и представлены все три учебника. У школ разный средний входной балл. Три темы сложнее остальных. В синтетических данных у A выше прирост на задачах с уравнениями, у B — на выбранных темах геометрии, у C — на темах анализа данных. На хорошо освоенных темах есть резерв часов.
 
-## Запуск API демо, обзора и тем
+## Запуск API
 
 Из корня репозитория с Python 3.11 или новее:
 
@@ -44,9 +44,12 @@ python3 -m venv .venv
 curl -X POST http://127.0.0.1:8000/api/datasets/demo
 curl 'http://127.0.0.1:8000/api/datasets/demo/overview?school_id=S01'
 curl 'http://127.0.0.1:8000/api/datasets/demo/topics?school_id=S01'
+curl 'http://127.0.0.1:8000/api/datasets/demo/textbook-comparison?topic_id=T09'
 ```
 
 Маршрут тем возвращает статистику по всем 25 темам и ячейки `heatmap`. Для всех школ получается 125 ячеек, для `S01` — 25. Пример ответа для интерфейса — [demo-topics-s01.json](contracts/examples/demo-topics-s01.json).
+
+Сравнение учебников требует `topic_id` и принимает необязательный `school_id`. Пример для линейных уравнений — [demo-textbook-comparison-t09.json](contracts/examples/demo-textbook-comparison-t09.json). `groups` содержит сводки по учебникам, `comparisons` — наблюдаемые различия прироста внутри сопоставимых групп.
 
 Интерфейс может отправлять запросы на относительные пути `/api/…`. Для локальной разработки настрой прокси Vite для `/api` на `http://127.0.0.1:8000`. Поля ответов описаны в [контракте API](contracts/README.md).
 

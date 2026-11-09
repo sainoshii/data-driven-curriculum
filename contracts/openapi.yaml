@@ -97,6 +97,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TextbookComparison' }
+              examples:
+                linearEquations: { externalValue: examples/demo-textbook-comparison-t09.json }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/InvalidInput' }
 
