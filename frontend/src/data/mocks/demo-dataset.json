@@ -1,0 +1,11 @@
+{
+  "dataset_id": "demo",
+  "is_demo": true,
+  "school_ids": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05"
+  ]
+}
