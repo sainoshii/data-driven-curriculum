@@ -45,6 +45,20 @@ class Overview(BaseModel):
     hardest_topics: list[TopicScores]
 
 
+class HeatmapCell(BaseModel):
+    school_id: str
+    topic_id: str
+    scores: Scores
+
+
+class Topics(BaseModel):
+    dataset_id: str
+    school_id: str | None
+    mastery_threshold: int
+    topics: list[TopicScores]
+    heatmap: list[HeatmapCell]
+
+
 class ErrorDetail(BaseModel):
     field: str
     message: str
@@ -60,6 +74,12 @@ class ApiError(BaseModel):
 class DemoData:
     metadata: Dataset
     results: pd.DataFrame
+    topics: pd.DataFrame
+
+    def results_for_school(self, school_id: str | None) -> pd.DataFrame:
+        if school_id is None:
+            return self.results
+        return self.results[self.results["school_id"] == school_id]
 
 
 @asynccontextmanager
@@ -80,6 +100,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             school_ids=sorted(results["school_id"].unique().tolist()),
         ),
         results=results.merge(topics[["topic_id", "topic_name"]], on="topic_id", validate="many_to_one"),
+        topics=topics,
     )
     yield
 
@@ -115,6 +136,14 @@ def summarize(scores: pd.Series) -> Scores:
     )
 
 
+def scope_error(demo: DemoData, dataset_id: str, school_id: str | None) -> ApiError | None:
+    if dataset_id != demo.metadata.dataset_id:
+        return ApiError(code="dataset_not_found", message="Набор не найден.", details=[])
+    if school_id is not None and school_id not in demo.metadata.school_ids:
+        return ApiError(code="school_not_found", message="Школа не найдена.", details=[])
+    return None
+
+
 @app.post("/api/datasets/demo", operation_id="openDemoDataset")
 def open_demo_dataset(request: Request) -> Dataset:
     return request.app.state.demo.metadata
@@ -132,15 +161,11 @@ def get_overview(
     school_id: Annotated[str | None, Query(min_length=1)] = None,
 ) -> Overview | JSONResponse:
     demo: DemoData = request.app.state.demo
-    if dataset_id != demo.metadata.dataset_id:
-        return error_response(404, ApiError(code="dataset_not_found", message="Набор не найден.", details=[]))
-    if school_id is not None and school_id not in demo.metadata.school_ids:
-        return error_response(404, ApiError(code="school_not_found", message="Школа не найдена.", details=[]))
+    error = scope_error(demo, dataset_id, school_id)
+    if error is not None:
+        return error_response(404, error)
 
-    results = demo.results
-    if school_id is not None:
-        results = results[results["school_id"] == school_id]
-
+    results = demo.results_for_school(school_id)
     topics = [
         TopicScores(topic_id=topic_id, topic_name=name, scores=summarize(group["post_score"]))
         for (topic_id, name), group in results.groupby(["topic_id", "topic_name"])
@@ -153,4 +178,55 @@ def get_overview(
         student_count=int(results["student_id"].nunique()),
         scores=summarize(results["post_score"]),
         hardest_topics=topics[:3],
+    )
+
+
+@app.get(
+    "/api/datasets/{dataset_id}/topics",
+    operation_id="getTopics",
+    response_model=Topics,
+    responses={404: {"model": ApiError}, 422: {"model": ApiError}},
+)
+def get_topics(
+    request: Request,
+    dataset_id: str,
+    school_id: Annotated[str | None, Query(min_length=1)] = None,
+) -> Topics | JSONResponse:
+    demo: DemoData = request.app.state.demo
+    error = scope_error(demo, dataset_id, school_id)
+    if error is not None:
+        return error_response(404, error)
+
+    results = demo.results_for_school(school_id)
+    topic_scores = {
+        topic_id: summarize(scores)
+        for topic_id, scores in results.groupby("topic_id")["post_score"]
+    }
+    heatmap_scores = {
+        key: summarize(scores)
+        for key, scores in results.groupby(["school_id", "topic_id"])["post_score"]
+    }
+    catalog = list(
+        demo.topics.sort_values("topic_id")[["topic_id", "topic_name"]].itertuples(index=False, name=None)
+    )
+    school_ids = demo.metadata.school_ids if school_id is None else [school_id]
+    empty = Scores(result_count=0, post_score_avg=None, below_threshold_pct=None)
+
+    return Topics(
+        dataset_id=dataset_id,
+        school_id=school_id,
+        mastery_threshold=MASTERY_THRESHOLD,
+        topics=[
+            TopicScores(topic_id=topic_id, topic_name=name, scores=topic_scores.get(topic_id, empty))
+            for topic_id, name in catalog
+        ],
+        heatmap=[
+            HeatmapCell(
+                school_id=current_school,
+                topic_id=topic_id,
+                scores=heatmap_scores.get((current_school, topic_id), empty),
+            )
+            for current_school in school_ids
+            for topic_id, _ in catalog
+        ],
     )
