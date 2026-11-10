@@ -124,3 +124,19 @@
 .uploaded-badge { background: #eaf4f0; border-color: #cbded5; color: #386354; }
 @media (max-width: 1000px) { .upload-fields { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .dataset-options { flex-direction: column; gap: 20px; } .upload-form { border-left: 0; border-top: 1px solid #e3e7ee; padding: 20px 0 0; width: 100%; } .upload-submit { align-items: flex-start; flex-direction: column; } }
+
+.scenario-panel { border: 1px solid #dce3f1; background: #fff; border-radius: 10px; padding: 24px; margin: 24px 0; }
+.scenario-panel h2 { font-size: 19px; }
+.scenario-panel .sample-note { margin: 12px 0 18px; line-height: 1.7; }
+.scenario-panel fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.scenario-fields { display: grid; grid-template-columns: 1fr 1fr 110px; gap: 16px; }
+.scenario-fields label { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 13px; color: #536176; }
+.scenario-fields select, .scenario-fields input { font: inherit; width: 100%; padding: 11px; border: 1px solid #cdd5e3; border-radius: 7px; background: #fff; color: #27374c; }
+.scenario-fields select:focus-visible, .scenario-fields input:focus-visible { outline: 3px solid #697be4; outline-offset: 3px; }
+.scenario-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+.scenario-actions .secondary-button { margin: 0; }
+.scenario-change { table-layout: fixed; }
+.scenario-change th, .scenario-change td { padding: 10px 8px; overflow-wrap: anywhere; }
+.scenario-change th:first-child { text-align: left; width: 54%; }
+@media (max-width: 1000px) { .scenario-fields { grid-template-columns: 1fr; } }
+.scenario-change thead th { font-size: 11px; }
