@@ -107,6 +107,9 @@
 
 .dataset-controls { background: #fff; border: 1px solid #e0e5ed; border-radius: 10px; padding: 24px; margin-bottom: 24px; }
 .dataset-controls h2 { font-size: 17px; margin-bottom: 20px; }
+.active-upload { background: #eaf4f0; color: #386354; border: 1px solid #cbded5; border-radius: 6px; padding: 12px 14px; margin-bottom: 20px; overflow-wrap: anywhere; }
+.active-upload p { font-size: 13px; margin-top: 4px; }
+.active-upload b { font-weight: 600; }
 .dataset-options { display: flex; gap: 28px; align-items: flex-start; }
 .demo-option { flex-shrink: 0; min-width: 160px; }
 .demo-option p, .upload-submit p { font-size: 12px; color: #657187; margin-top: 12px; }

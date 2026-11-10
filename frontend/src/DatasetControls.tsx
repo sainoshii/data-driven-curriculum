@@ -17,25 +17,38 @@ export function DatasetErrorMessage({ error }: { error: Error }) {
   </div>
 }
 
-export default function DatasetControls({ busy, action, error, onDemo, onUpload }: {
+export type UploadFileNames = { results: string; topics: string }
+
+export default function DatasetControls({ hidden, activeUpload, busy, action, error, onDemo, onUpload }: {
+  hidden: boolean
+  activeUpload: UploadFileNames | null
   busy: boolean
   action: 'demo' | 'upload' | null
   error: Error | null
   onDemo: () => void
-  onUpload: (results: File, topics: File) => void
+  onUpload: (results: File, topics: File) => Promise<boolean>
 }) {
   const [results, setResults] = useState<File | null>(null)
   const [topics, setTopics] = useState<File | null>(null)
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (results && topics) onUpload(results, topics)
+    const form = event.currentTarget
+    if (results && topics && await onUpload(results, topics)) {
+      form.reset()
+      setResults(null)
+      setTopics(null)
+    }
   }
-  return <section className="dataset-controls" aria-labelledby="dataset-controls-title" aria-busy={busy}>
+  return <section className="dataset-controls" hidden={hidden} aria-labelledby="dataset-controls-title" aria-busy={busy}>
     <h2 id="dataset-controls-title">Данные для анализа</h2>
+    {activeUpload && <div className="active-upload" role="status">
+      <strong>Используются загруженные CSV</strong>
+      <p>Результаты: <b>{activeUpload.results}</b> · Темы и часы: <b>{activeUpload.topics}</b></p>
+    </div>}
     <div className="dataset-options">
       <div className="demo-option"><button className="primary-button" onClick={onDemo} disabled={busy}>{busy && action === 'demo' ? 'Открываем демо…' : 'Открыть демо'}</button><p>Математика, 7-й класс.<br />Синтетические результаты.</p></div>
       <form onSubmit={submit} className="upload-form">
-        <fieldset disabled={busy}><legend>Загрузить свои CSV</legend>
+        <fieldset disabled={busy}><legend>{activeUpload ? 'Заменить набор CSV' : 'Загрузить свои CSV'}</legend>
           <div className="upload-fields"><label>results.csv — результаты<input name="results" type="file" accept=".csv,text/csv" required onChange={event => setResults(event.target.files?.[0] ?? null)} /></label>
           <label>topics.csv — темы и часы<input name="topics" type="file" accept=".csv,text/csv" required onChange={event => setTopics(event.target.files?.[0] ?? null)} /></label></div>
           <div className="upload-submit"><button className="secondary-button" type="submit" disabled={!results || !topics}>{busy && action === 'upload' ? 'Загружаем CSV…' : 'Загрузить CSV'}</button><p>Два файла в UTF-8, разделитель — запятая. До 5 МиБ каждый.</p></div>
