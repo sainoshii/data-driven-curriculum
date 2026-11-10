@@ -14,7 +14,16 @@ from pydantic import BaseModel
 
 from backend.datasets import Dataset, DatasetData, DatasetStore, InvalidCSV, make_dataset, validate_results, validate_topics
 from backend.metrics import MASTERY_THRESHOLD, Scores, summarize
-from backend.plans import Plan, PlanRequest, PlanStore, build_plan, export_csv
+from backend.plans import (
+    InvalidTransfer,
+    Plan,
+    PlanRequest,
+    PlanStore,
+    TransferRequest,
+    apply_manual_transfer,
+    build_plan,
+    export_csv,
+)
 from backend.textbooks import TextbookComparison, build_textbook_comparison
 from scripts.generate_demo_data import generate
 
@@ -274,6 +283,27 @@ def create_plan(request: Request, dataset: ResolvedDataset, body: PlanRequest) -
         school_id=body.school_id,
     )
     request.app.state.plans.save(plan)
+    return plan
+
+
+@app.post(
+    "/api/datasets/{dataset_id}/plans/{plan_id}/transfers",
+    operation_id="transferPlanHours",
+    response_model=Plan,
+    status_code=201,
+    responses={404: {"model": ApiError}, 422: {"model": ApiError}},
+)
+def transfer_plan_hours(request: Request, dataset: ResolvedDataset, plan_id: str, body: TransferRequest) -> Plan:
+    store: PlanStore = request.app.state.plans
+    original = store.load(dataset.metadata.dataset_id, plan_id)
+    if original is None:
+        raise ApiFailure(404, ApiError(code="plan_not_found", message="План не найден.", details=[]))
+
+    try:
+        plan = apply_manual_transfer(original, dataset.topics, body)
+    except InvalidTransfer as exc:
+        raise ApiFailure(422, ApiError(code="invalid_request", message=str(exc), details=[])) from exc
+    store.save(plan)
     return plan
 
 

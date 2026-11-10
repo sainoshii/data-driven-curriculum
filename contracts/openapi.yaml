@@ -133,6 +133,39 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/InvalidInput' }
 
+  /api/datasets/{dataset_id}/plans/{plan_id}/transfers:
+    parameters:
+      - $ref: '#/components/parameters/DatasetId'
+      - name: plan_id
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/Id' }
+    post:
+      operationId: transferPlanHours
+      summary: Сохранить вариант плана с ручным переносом часов
+      description: Темы должны различаться. Применяются минимумы и максимумы из загруженного учебного плана. Перенос сохраняет общий бюджет. Каждый вариант получает собственный plan_id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [from_topic_id, to_topic_id, hours]
+              properties:
+                from_topic_id: { $ref: '#/components/schemas/Id' }
+                to_topic_id: { $ref: '#/components/schemas/Id' }
+                hours: { type: integer, minimum: 1 }
+            example: { from_topic_id: T08, to_topic_id: T11, hours: 1 }
+      responses:
+        '201':
+          description: Сохранённый вариант плана с обновлёнными часами
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Plan' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/InvalidInput' }
+
   /api/datasets/{dataset_id}/plans/{plan_id}/export:
     parameters:
       - $ref: '#/components/parameters/DatasetId'

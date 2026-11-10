@@ -93,3 +93,44 @@ def test_limited_reserve_goes_to_hardest_topic():
     assert plan.status == "no_changes"
     assert plan.transfers == []
     assert all(item.delta_hours == 0 for item in plan.items)
+
+
+def test_manual_transfer_saves_a_balanced_variant_with_its_own_export(plans_db):
+    prefix = "/api/datasets/demo/plans"
+    with TestClient(app) as client:
+        original = client.post(prefix, json={}).json()
+        original_url = f"{prefix}/{original['plan_id']}"
+        original_csv = client.get(f"{original_url}/export").text
+        response = client.post(
+            f"{original_url}/transfers", json={"from_topic_id": "T08", "to_topic_id": "T11", "hours": 1}
+        )
+        assert response.status_code == 201
+        revised = response.json()
+        assert revised["plan_id"] != original["plan_id"]
+        assert revised["current_total_hours"] == revised["proposed_total_hours"] == 119
+        assert revised["school_id"] == original["school_id"]
+        assert "Ручной перенос" in revised["explanation"]
+
+        before = {item["topic_id"]: item for item in original["items"]}
+        after = {item["topic_id"]: item for item in revised["items"]}
+        assert after["T08"]["proposed_hours"] == before["T08"]["proposed_hours"] - 1
+        assert after["T11"]["proposed_hours"] == before["T11"]["proposed_hours"] + 1
+        assert all(after[topic] == item for topic, item in before.items() if topic not in {"T08", "T11"})
+
+        movement = Counter()
+        for transfer in revised["transfers"]:
+            movement[transfer["from_topic_id"]] -= transfer["hours"]
+            movement[transfer["to_topic_id"]] += transfer["hours"]
+        assert all(item["delta_hours"] == movement[topic] for topic, item in after.items())
+        assert client.get(f"{original_url}/export").text == original_csv
+        new_csv = client.get(f"{prefix}/{revised['plan_id']}/export")
+        assert new_csv.status_code == 200
+        rows = {row["topic_id"]: row for row in csv.DictReader(io.StringIO(new_csv.text))}
+        assert int(rows["T11"]["proposed_hours"]) == after["T11"]["proposed_hours"]
+        assert rows["T11"]["reason"] == after["T11"]["reason"]
+
+        for source, target, hours in [("T01", "T11", 1), ("T08", "T11", 2), ("T08", "T08", 1), ("T08", "T11", 0)]:
+            response = client.post(
+                f"{original_url}/transfers", json={"from_topic_id": source, "to_topic_id": target, "hours": hours}
+            )
+            assert response.status_code == 422 and response.json()["code"] == "invalid_request"

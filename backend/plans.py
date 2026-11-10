@@ -47,6 +47,13 @@ class Transfer(BaseModel):
     hours: int
 
 
+class TransferRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    from_topic_id: Annotated[str, Field(min_length=1)]
+    to_topic_id: Annotated[str, Field(min_length=1)]
+    hours: Annotated[int, Field(strict=True, gt=0)]
+
+
 class Plan(BaseModel):
     dataset_id: str
     plan_id: str
@@ -130,6 +137,70 @@ def build_plan(
         items=list(items.values()),
         transfers=transfers,
     )
+
+
+class InvalidTransfer(ValueError):
+    pass
+
+
+def net_transfers(items: list[PlanItem], previous: list[Transfer]) -> list[Transfer]:
+    donors = {item.topic_id: -item.delta_hours for item in items if item.delta_hours < 0}
+    recipients = {item.topic_id: item.delta_hours for item in items if item.delta_hours > 0}
+    transfers: dict[tuple[str, str], int] = {}
+
+    def allocate(source: str, target: str, limit: int) -> None:
+        hours = min(donors.get(source, 0), recipients.get(target, 0), limit)
+        if hours:
+            donors[source] -= hours
+            recipients[target] -= hours
+            pair = (source, target)
+            transfers[pair] = transfers.get(pair, 0) + hours
+
+    for transfer in previous:
+        allocate(transfer.from_topic_id, transfer.to_topic_id, transfer.hours)
+    for source in donors:
+        for target, need in recipients.items():
+            if not donors[source]:
+                break
+            allocate(source, target, need)
+    return [Transfer(from_topic_id=source, to_topic_id=target, hours=hours) for (source, target), hours in transfers.items()]
+
+
+def apply_manual_transfer(plan: Plan, catalog: pd.DataFrame, change: TransferRequest) -> Plan:
+    items = {item.topic_id: item for item in plan.items}
+    source_id, target_id = change.from_topic_id, change.to_topic_id
+    if source_id == target_id:
+        raise InvalidTransfer("Выберите две разные темы.")
+    if source_id not in items or target_id not in items:
+        raise InvalidTransfer("Выберите темы из сохранённого плана.")
+
+    source, target = items[source_id], items[target_id]
+    bounds = catalog.set_index("topic_id")
+    source_hours = source.proposed_hours - change.hours
+    target_hours = target.proposed_hours + change.hours
+    if source_hours < bounds.at[source_id, "min_hours"]:
+        raise InvalidTransfer(f"После переноса для темы «{source.topic_name}» останется меньше допустимого минимума.")
+    if target_hours > bounds.at[target_id, "max_hours"]:
+        raise InvalidTransfer(f"После переноса тема «{target.topic_name}» превысит допустимый максимум.")
+
+    summary = f"Ручной перенос: «{source.topic_name}» → «{target.topic_name}», часов: {change.hours}."
+    for item, hours in ((source, source_hours), (target, target_hours)):
+        items[item.topic_id] = item.model_copy(update={
+            "proposed_hours": hours,
+            "delta_hours": hours - item.current_hours,
+            "reason": summary,
+        })
+
+    revised = list(items.values())
+    transfers = net_transfers(revised, plan.transfers)
+    return plan.model_copy(update={
+        "plan_id": uuid4().hex,
+        "status": "recommended" if transfers else "no_changes",
+        "explanation": f"{summary} Общий бюджет сохранён.",
+        "proposed_total_hours": sum(item.proposed_hours for item in revised),
+        "items": revised,
+        "transfers": transfers,
+    })
 
 
 class PlanStore:
