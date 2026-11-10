@@ -1,3 +1,4 @@
+import { DatasetBadge } from './DatasetControls'
 import { useEffect, useState } from 'react'
 import { curriculumApi, type Dataset, type TopicsData } from './data/curriculum'
 
@@ -46,7 +47,7 @@ export default function Topics({ dataset, schoolId, changingSchool, filterError,
     <div className="overview-toolbar">
       <div><h2>Сложность тем</h2><p>Доля результатов ниже порога, средний балл и размер выборки</p></div>
       <div className="overview-controls">
-        {dataset.is_demo && <span className="demo-badge">Демонстрационные данные</span>}
+        <DatasetBadge dataset={dataset} />
         <label className="school-filter">Школа
           <select aria-label="Школа" value={schoolId} onChange={event => onSchoolChange(event.target.value)} disabled={loading || changingSchool}>
             <option value="">Все школы</option>

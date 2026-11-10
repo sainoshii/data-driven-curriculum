@@ -3,7 +3,8 @@ import Overview, { type DemoState } from './Overview'
 import Topics from './Topics'
 import Plan from './Plan'
 import Textbooks from './Textbooks'
-import { curriculumApi, type PlanData } from './data/curriculum'
+import DatasetControls from './DatasetControls'
+import { curriculumApi, type Dataset, type PlanData } from './data/curriculum'
 
 const sections = [
   { id: 'overview', label: 'Обзор', icon: 'overview' },
@@ -34,17 +35,29 @@ export default function App() {
   const [selectedTopic, setSelectedTopic] = useState('')
   const [plan, setPlan] = useState<PlanData | null>(null)
   const [planInvalidated, setPlanInvalidated] = useState(false)
+  const [datasetError, setDatasetError] = useState<Error | null>(null)
+  const [datasetAction, setDatasetAction] = useState<'demo' | 'upload' | null>(null)
 
-  async function openDemo() {
+  async function replaceDataset(action: 'demo' | 'upload', load: () => Promise<Dataset>) {
+    setDatasetAction(action)
+    setDatasetError(null)
     setDemo(previous => ({ ...previous, loading: true, error: null }))
     try {
-      const dataset = await curriculumApi.openDemoDataset()
+      const dataset = await load()
       const overview = await curriculumApi.getOverview(dataset.dataset_id)
       setDemo({ dataset, overview, loading: false, error: null })
+      setRequestedSchool('')
+      setSelectedTopic('')
+      setPlan(null)
+      setPlanInvalidated(false)
     } catch (error) {
-      setDemo(previous => ({ ...previous, loading: false, error: error instanceof Error ? error.message : 'Не удалось открыть демо. Попробуйте ещё раз.' }))
-    }
+      setDatasetError(error instanceof Error ? error : new Error('Не удалось открыть набор. Повторите попытку.'))
+      setDemo(previous => ({ ...previous, loading: false }))
+    } finally { setDatasetAction(null) }
   }
+
+  const openDemo = () => replaceDataset('demo', () => curriculumApi.openDemoDataset())
+  const uploadDataset = (results: File, topics: File) => replaceDataset('upload', () => curriculumApi.uploadDataset(results, topics))
 
   async function changeSchool(schoolId: string) {
     if (!demo.dataset) return
@@ -75,10 +88,10 @@ export default function App() {
       <header className="topbar"><span>Рабочее пространство</span><div className="dataset-status"><span />{demo.dataset ? 'Данные загружены' : 'Данные не загружены'}</div></header>
       <main id="main" tabIndex={-1}>
         <div className="page-heading"><div><div className="breadcrumb">Панель методиста <span>/</span> {current.label}</div><h1>{current.label}</h1></div><span className="subject-tag">Математика · 7 класс</span></div>
-        {active === 'overview' && <Overview
-          state={demo} onOpenDemo={openDemo} onSchoolChange={changeSchool}
+        {active === 'overview' && <><DatasetControls busy={demo.loading} action={datasetAction} error={datasetError} onDemo={openDemo} onUpload={uploadDataset} /><Overview
+          state={demo} onSchoolChange={changeSchool}
           onRetry={() => demo.dataset ? changeSchool(requestedSchool) : openDemo()}
-        />}
+        /></>}
         {active === 'topics' && <Topics
           key={JSON.stringify([demo.dataset?.dataset_id, demo.overview?.school_id])}
           dataset={demo.dataset} schoolId={demo.overview?.school_id ?? ''}

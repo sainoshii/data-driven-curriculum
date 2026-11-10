@@ -20,12 +20,27 @@ export interface OverviewData {
 }
 
 export interface CurriculumApi {
+  uploadDataset(results: File, topics: File): Promise<Dataset>
   openDemoDataset(): Promise<Dataset>
   getOverview(datasetId: string, schoolId?: string): Promise<OverviewData>
   getTopics(datasetId: string, schoolId?: string): Promise<TopicsData>
   getTextbookComparison(datasetId: string, topicId: string, schoolId?: string): Promise<TextbookComparisonData>
   createPlan(datasetId: string, schoolId?: string): Promise<PlanData>
   exportPlan(datasetId: string, planId: string): Promise<Blob>
+}
+
+export interface ApiErrorDetail {
+  message: string
+  file?: string
+  row?: number
+  field?: string
+}
+
+export class ApiError extends Error {
+  constructor(message: string, public status: number, public details: ApiErrorDetail[] = []) {
+    super(message)
+    this.name = 'ApiError'
+  }
 }
 
 export interface PlanData {
@@ -90,7 +105,7 @@ async function requestResponse(path: string, method = 'GET', body?: object): Pro
     response = await fetch(path, {
       method,
       signal: AbortSignal.timeout(15000),
-      ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+      ...(body === undefined ? {} : body instanceof FormData ? { body } : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
     })
   } catch {
     throw new Error('Не удалось связаться с сервером. Проверьте, что API запущен, и повторите запрос.')
@@ -99,7 +114,10 @@ async function requestResponse(path: string, method = 'GET', body?: object): Pro
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null)
     if (body && typeof body === 'object' && 'message' in body && typeof body.message === 'string') {
-      throw new Error(body.message)
+      const details: ApiErrorDetail[] = 'details' in body && Array.isArray(body.details)
+        ? body.details.filter((detail): detail is ApiErrorDetail => detail !== null && typeof detail === 'object' && typeof detail.message === 'string')
+        : []
+      throw new ApiError(body.message, response.status, details)
     }
     throw new Error(`Сервер недоступен или не смог обработать запрос (HTTP ${response.status}). Попробуйте ещё раз.`)
   }
@@ -117,6 +135,12 @@ async function request<T>(path: string, method = 'GET', body?: object): Promise<
 }
 
 export const curriculumApi: CurriculumApi = {
+  uploadDataset(results, topics) {
+    const form = new FormData()
+    form.append('results', results)
+    form.append('topics', topics)
+    return request<Dataset>('/api/datasets', 'POST', form)
+  },
   openDemoDataset() {
     return request<Dataset>('/api/datasets/demo', 'POST')
   },
