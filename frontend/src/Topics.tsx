@@ -7,13 +7,14 @@ const value = (n: number | null | undefined) => n == null ? 'Нет данных
 const percent = (n: number | null | undefined) => n == null ? 'Нет данных' : `${value(n)}%`
 const heatLevel = (n: number | null | undefined) => n == null ? 'missing' : n < 25 ? 'low' : n < 50 ? 'medium' : n < 75 ? 'high' : 'highest'
 
-export default function Topics({ dataset, schoolId, changingSchool, filterError, onSchoolChange, onRetryFilter, onOverview }: {
+export default function Topics({ dataset, schoolId, changingSchool, filterError, onSchoolChange, onRetryFilter, onCompareTopic, onOverview }: {
   dataset: Dataset | null
   schoolId: string
   changingSchool: boolean
   filterError: string | null
   onSchoolChange: (id: string) => void
   onRetryFilter: () => void
+  onCompareTopic: (topicId: string) => void
   onOverview: () => void
 }) {
   const [data, setData] = useState<TopicsData | null>(null)
@@ -84,7 +85,25 @@ export default function Topics({ dataset, schoolId, changingSchool, filterError,
           <table className="topics-table">
             <caption>Темы по убыванию сложности · {schoolId || 'Все школы'}</caption>
             <thead><tr><th scope="col">Тема</th><th scope="col" aria-sort="descending">Результаты ниже {value(data.mastery_threshold)} баллов</th><th scope="col">Средний итоговый балл</th><th scope="col">Размер выборки</th></tr></thead>
-            <tbody>{topics.map(topic => <tr key={topic.topic_id}><th scope="row"><span className="topic-code">{topic.topic_id}</span>{topic.topic_name}</th><td>{percent(topic.scores.below_threshold_pct)}</td><td>{value(topic.scores.post_score_avg)}</td><td>{value(topic.scores.result_count)}</td></tr>)}</tbody>
+            <tbody>
+              {topics.map(topic => <tr key={topic.topic_id}>
+                <th scope="row">
+                  <span className="topic-code">{topic.topic_id}</span>{topic.topic_name}
+                  <button
+                    type="button"
+                    className="secondary-button topic-compare-button"
+                    aria-label={`Сравнить учебники по теме «${topic.topic_name}»`}
+                    disabled={loading || changingSchool}
+                    onClick={() => onCompareTopic(topic.topic_id)}
+                  >
+                    Сравнить учебники
+                  </button>
+                </th>
+                <td>{percent(topic.scores.below_threshold_pct)}</td>
+                <td>{value(topic.scores.post_score_avg)}</td>
+                <td>{value(topic.scores.result_count)}</td>
+              </tr>)}
+            </tbody>
           </table>
         </div>
         {!topics.length && <p className="empty-state">В наборе нет тем.</p>}
