@@ -82,6 +82,13 @@
 .plan-budget { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .plan-section { margin-top: 28px; }
 .plan-section h2 { font-size: 18px; margin-bottom: 16px; }
+.school-context > p { color: #536176; font-size: 13px; line-height: 1.6; margin-bottom: 12px; }
+.school-context-list { border: 1px solid #e0e5ed; border-radius: 10px; background: #fff; }
+.school-context details + details { border-top: 1px solid #e7eaf2; }
+.school-context summary { padding: 16px; cursor: pointer; line-height: 1.6; }
+.school-context summary strong { margin-left: 12px; color: #475dab; font-size: 13px; white-space: nowrap; }
+.school-context ul { margin: 0 16px 16px 38px; padding: 0; list-style: none; font-size: 13px; }
+.school-context li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #e7eaf2; }
 .transfer-list { list-style: none; padding: 0; margin: 0; border: 1px solid #e0e5ed; background: white; border-radius: 10px; }
 .transfer-list li { display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center; padding: 20px; font-size: 13px; line-height: 1.6; }
 .transfer-list li + li { border-top: 1px solid #e7eaf2; }
