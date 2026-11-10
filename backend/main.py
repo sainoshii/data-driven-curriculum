@@ -7,11 +7,12 @@ from tempfile import TemporaryDirectory
 from typing import Annotated
 
 import pandas as pd
-from fastapi import FastAPI, Query, Request
+from fastapi import Depends, FastAPI, File, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
+from backend.datasets import Dataset, DatasetData, DatasetStore, InvalidCSV, make_dataset, validate_results, validate_topics
 from backend.metrics import MASTERY_THRESHOLD, Scores, summarize
 from backend.plans import Plan, PlanRequest, PlanStore, build_plan, export_csv
 from backend.textbooks import TextbookComparison, build_textbook_comparison
@@ -20,12 +21,7 @@ from scripts.generate_demo_data import generate
 
 DEMO_ID = "demo"
 DEFAULT_PLANS_DB = Path(__file__).resolve().parents[1] / "data" / "plans.sqlite3"
-
-
-class Dataset(BaseModel):
-    dataset_id: str
-    is_demo: bool
-    school_ids: list[str]
+DEFAULT_DATASETS_DB = DEFAULT_PLANS_DB.with_name("datasets.sqlite3")
 
 
 class TopicScores(BaseModel):
@@ -58,8 +54,10 @@ class Topics(BaseModel):
 
 
 class ErrorDetail(BaseModel):
-    field: str
     message: str
+    field: str | None = None
+    file: str | None = None
+    row: int | None = None
 
 
 class ApiError(BaseModel):
@@ -68,16 +66,10 @@ class ApiError(BaseModel):
     details: list[ErrorDetail]
 
 
-@dataclass(frozen=True)
-class DemoData:
-    metadata: Dataset
-    results: pd.DataFrame
-    topics: pd.DataFrame
-
-    def results_for_school(self, school_id: str | None) -> pd.DataFrame:
-        if school_id is None:
-            return self.results
-        return self.results[self.results["school_id"] == school_id]
+@dataclass
+class ApiFailure(Exception):
+    status: int
+    error: ApiError
 
 
 @asynccontextmanager
@@ -91,15 +83,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             dtype={key: str for key in ("student_id", "school_id", "topic_id")},
         )
         topics = pd.read_csv(output_dir / "topics.csv", dtype={"topic_id": str})
-    app.state.demo = DemoData(
-        metadata=Dataset(
-            dataset_id=DEMO_ID,
-            is_demo=True,
-            school_ids=sorted(results["school_id"].unique().tolist()),
-        ),
-        results=results.merge(topics[["topic_id", "topic_name"]], on="topic_id", validate="many_to_one"),
-        topics=topics,
-    )
+    app.state.demo = make_dataset(DEMO_ID, results, topics, is_demo=True)
+    app.state.datasets = DatasetStore(Path(environ.get("CURRICULUM_DATASETS_DB", str(DEFAULT_DATASETS_DB))))
     app.state.plans = PlanStore(Path(environ.get("CURRICULUM_PLANS_DB", str(DEFAULT_PLANS_DB))))
     yield
 
@@ -108,7 +93,12 @@ app = FastAPI(title="Data-Driven Curriculum API", lifespan=lifespan)
 
 
 def error_response(status: int, error: ApiError) -> JSONResponse:
-    return JSONResponse(status_code=status, content=error.model_dump())
+    return JSONResponse(status_code=status, content=error.model_dump(exclude_none=True))
+
+
+@app.exception_handler(ApiFailure)
+async def api_failure(_request: Request, exc: ApiFailure) -> JSONResponse:
+    return error_response(exc.status, exc.error)
 
 
 @app.exception_handler(RequestValidationError)
@@ -126,17 +116,53 @@ async def invalid_request(_request: Request, exc: RequestValidationError) -> JSO
     )
 
 
-def scope_error(demo: DemoData, dataset_id: str, school_id: str | None) -> ApiError | None:
-    if dataset_id != demo.metadata.dataset_id:
-        return ApiError(code="dataset_not_found", message="Набор не найден.", details=[])
-    if school_id is not None and school_id not in demo.metadata.school_ids:
-        return ApiError(code="school_not_found", message="Школа не найдена.", details=[])
-    return None
+def resolve_dataset(request: Request, dataset_id: str) -> DatasetData:
+    if dataset_id == DEMO_ID:
+        return request.app.state.demo
+    dataset = request.app.state.datasets.load(dataset_id)
+    if dataset is None:
+        raise ApiFailure(404, ApiError(code="dataset_not_found", message="Набор не найден.", details=[]))
+    return dataset
+
+
+ResolvedDataset = Annotated[DatasetData, Depends(resolve_dataset)]
+
+
+def select_school(dataset: DatasetData, school_id: str | None) -> pd.DataFrame:
+    if school_id is not None and school_id not in dataset.metadata.school_ids:
+        raise ApiFailure(404, ApiError(code="school_not_found", message="Школа не найдена.", details=[]))
+    return dataset.results_for_school(school_id)
 
 
 @app.post("/api/datasets/demo", operation_id="openDemoDataset")
 def open_demo_dataset(request: Request) -> Dataset:
     return request.app.state.demo.metadata
+
+
+@app.post(
+    "/api/datasets",
+    operation_id="uploadDataset",
+    status_code=201,
+    responses={422: {"model": ApiError}},
+)
+def upload_dataset(
+    request: Request,
+    results: Annotated[UploadFile, File()],
+    topics: Annotated[UploadFile, File()],
+) -> Dataset:
+    try:
+        topic_rows = validate_topics(topics.file)
+        result_rows = validate_results(results.file, {row["topic_id"] for row in topic_rows})
+    except InvalidCSV as exc:
+        raise ApiFailure(
+            422,
+            ApiError(
+                code="invalid_csv",
+                message="Проверьте входные CSV.",
+                details=[ErrorDetail(file=exc.file, row=exc.row, field=exc.field, message=str(exc))],
+            ),
+        ) from exc
+    return request.app.state.datasets.save(result_rows, topic_rows)
 
 
 @app.get(
@@ -146,23 +172,17 @@ def open_demo_dataset(request: Request) -> Dataset:
     responses={404: {"model": ApiError}, 422: {"model": ApiError}},
 )
 def get_overview(
-    request: Request,
-    dataset_id: str,
+    dataset: ResolvedDataset,
     school_id: Annotated[str | None, Query(min_length=1)] = None,
-) -> Overview | JSONResponse:
-    demo: DemoData = request.app.state.demo
-    error = scope_error(demo, dataset_id, school_id)
-    if error is not None:
-        return error_response(404, error)
-
-    results = demo.results_for_school(school_id)
+) -> Overview:
+    results = select_school(dataset, school_id)
     topics = [
         TopicScores(topic_id=topic_id, topic_name=name, scores=summarize(group["post_score"]))
         for (topic_id, name), group in results.groupby(["topic_id", "topic_name"])
     ]
     topics.sort(key=lambda topic: (-(topic.scores.below_threshold_pct or 0), topic.topic_id))
     return Overview(
-        dataset=demo.metadata,
+        dataset=dataset.metadata,
         school_id=school_id,
         mastery_threshold=MASTERY_THRESHOLD,
         student_count=int(results["student_id"].nunique()),
@@ -178,16 +198,10 @@ def get_overview(
     responses={404: {"model": ApiError}, 422: {"model": ApiError}},
 )
 def get_topics(
-    request: Request,
-    dataset_id: str,
+    dataset: ResolvedDataset,
     school_id: Annotated[str | None, Query(min_length=1)] = None,
-) -> Topics | JSONResponse:
-    demo: DemoData = request.app.state.demo
-    error = scope_error(demo, dataset_id, school_id)
-    if error is not None:
-        return error_response(404, error)
-
-    results = demo.results_for_school(school_id)
+) -> Topics:
+    results = select_school(dataset, school_id)
     topic_scores = {
         topic_id: summarize(scores)
         for topic_id, scores in results.groupby("topic_id")["post_score"]
@@ -197,13 +211,13 @@ def get_topics(
         for key, scores in results.groupby(["school_id", "topic_id"])["post_score"]
     }
     catalog = list(
-        demo.topics.sort_values("topic_id")[["topic_id", "topic_name"]].itertuples(index=False, name=None)
+        dataset.topics.sort_values("topic_id")[["topic_id", "topic_name"]].itertuples(index=False, name=None)
     )
-    school_ids = demo.metadata.school_ids if school_id is None else [school_id]
+    school_ids = dataset.metadata.school_ids if school_id is None else [school_id]
     empty = Scores(result_count=0, post_score_avg=None, below_threshold_pct=None)
 
     return Topics(
-        dataset_id=dataset_id,
+        dataset_id=dataset.metadata.dataset_id,
         school_id=school_id,
         mastery_threshold=MASTERY_THRESHOLD,
         topics=[
@@ -229,21 +243,19 @@ def get_topics(
     responses={404: {"model": ApiError}, 422: {"model": ApiError}},
 )
 def compare_textbooks(
-    request: Request,
-    dataset_id: str,
+    dataset: ResolvedDataset,
     topic_id: Annotated[str, Query(min_length=1)],
     school_id: Annotated[str | None, Query(min_length=1)] = None,
-) -> TextbookComparison | JSONResponse:
-    demo: DemoData = request.app.state.demo
-    error = scope_error(demo, dataset_id, school_id)
-    if error is not None:
-        return error_response(404, error)
-    if not demo.topics["topic_id"].eq(topic_id).any():
-        return error_response(404, ApiError(code="topic_not_found", message="Тема не найдена.", details=[]))
+) -> TextbookComparison:
+    results = select_school(dataset, school_id)
+    if not dataset.topics["topic_id"].eq(topic_id).any():
+        raise ApiFailure(404, ApiError(code="topic_not_found", message="Тема не найдена.", details=[]))
 
-    results = demo.results_for_school(school_id)
     return build_textbook_comparison(
-        results[results["topic_id"] == topic_id], dataset_id=dataset_id, topic_id=topic_id, school_id=school_id
+        results[results["topic_id"] == topic_id],
+        dataset_id=dataset.metadata.dataset_id,
+        topic_id=topic_id,
+        school_id=school_id,
     )
 
 
@@ -254,15 +266,11 @@ def compare_textbooks(
     status_code=201,
     responses={404: {"model": ApiError}, 422: {"model": ApiError}},
 )
-def create_plan(request: Request, dataset_id: str, body: PlanRequest) -> Plan | JSONResponse:
-    demo: DemoData = request.app.state.demo
-    error = scope_error(demo, dataset_id, body.school_id)
-    if error is not None:
-        return error_response(404, error)
+def create_plan(request: Request, dataset: ResolvedDataset, body: PlanRequest) -> Plan:
     plan = build_plan(
-        demo.topics,
-        demo.results_for_school(body.school_id),
-        dataset_id=dataset_id,
+        dataset.topics,
+        select_school(dataset, body.school_id),
+        dataset_id=dataset.metadata.dataset_id,
         school_id=body.school_id,
     )
     request.app.state.plans.save(plan)
@@ -278,12 +286,8 @@ def create_plan(request: Request, dataset_id: str, body: PlanRequest) -> Plan | 
         404: {"model": ApiError},
     },
 )
-def export_plan(request: Request, dataset_id: str, plan_id: str) -> Response:
-    demo: DemoData = request.app.state.demo
-    error = scope_error(demo, dataset_id, None)
-    if error is not None:
-        return error_response(404, error)
-    plan = request.app.state.plans.load(dataset_id, plan_id)
+def export_plan(request: Request, dataset: ResolvedDataset, plan_id: str) -> Response:
+    plan = request.app.state.plans.load(dataset.metadata.dataset_id, plan_id)
     if plan is None:
         return error_response(404, ApiError(code="plan_not_found", message="План не найден.", details=[]))
     return Response(
