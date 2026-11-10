@@ -51,7 +51,7 @@ function Comparison({ datasetId, topicId, schoolId }: { datasetId: string; topic
   return <ComparisonTables data={data} />
 }
 
-export default function Textbooks({ dataset, schoolId, topicId, changingSchool, filterError, onTopicChange, onSchoolChange, onRetryFilter, onOverview }: {
+export default function Textbooks({ dataset, schoolId, topicId, changingSchool, filterError, onTopicChange, onSchoolChange, onRetryFilter, onOverview, onPlan }: {
   dataset: Dataset | null
   schoolId: string
   topicId: string
@@ -61,6 +61,7 @@ export default function Textbooks({ dataset, schoolId, topicId, changingSchool, 
   onSchoolChange: (id: string) => void
   onRetryFilter: () => void
   onOverview: () => void
+  onPlan: () => void
 }) {
   const [topics, setTopics] = useState<TopicScores[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -90,6 +91,7 @@ export default function Textbooks({ dataset, schoolId, topicId, changingSchool, 
       <label className="school-filter topic-filter">Тема<select aria-label="Тема" value={topicId} disabled={!topics?.length || changingSchool} onChange={event => onTopicChange(event.target.value)}>{!topics?.length && <option value="">{topics ? 'Нет тем' : 'Загрузка тем…'}</option>}{topics?.map(topic => <option key={topic.topic_id} value={topic.topic_id}>{topic.topic_id} · {topic.topic_name}</option>)}</select></label>
       <label className="school-filter">Школа<select aria-label="Школа" value={schoolId} disabled={changingSchool} onChange={event => onSchoolChange(event.target.value)}><option value="">Все школы</option>{dataset.school_ids.map(id => <option key={id} value={id}>{id}</option>)}</select></label>
     </div>
+    {topics?.some(topic => topic.topic_id === topicId) && <div className="topic-next-step"><p>Следующий шаг: проверьте часы для темы <strong>{topicId}</strong> в проекте плана.</p><button className="secondary-button" disabled={changingSchool} onClick={onPlan}>Перейти к плану этой темы</button></div>}
     {filterError && <div className="error-message" role="alert"><p>{filterError}</p><button className="secondary-button" disabled={changingSchool} onClick={onRetryFilter}>Повторить смену школы</button></div>}
     {error && <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setAttempt(n => n + 1)}>Повторить загрузку тем</button></div>}
     {!topics && !error && <p className="loading-message" role="status">Загружаем список тем…</p>}

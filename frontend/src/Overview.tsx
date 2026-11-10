@@ -1,5 +1,6 @@
-import type { Dataset, OverviewData } from './data/curriculum'
+import type { Dataset, OverviewData, PlanData } from './data/curriculum'
 import { DatasetBadge } from './DatasetControls'
+import { AnalysisSummary } from './GuidedAnalysis'
 
 export interface DemoState {
   dataset: Dataset | null
@@ -13,10 +14,12 @@ const integer = new Intl.NumberFormat('ru-RU')
 const score = (value: number | null) => value === null ? 'Нет данных' : decimal.format(value)
 const percent = (value: number | null) => value === null ? 'Нет данных' : `${decimal.format(value)}%`
 
-export default function Overview({ state, onSchoolChange, onRetry }: {
+export default function Overview({ state, onSchoolChange, onRetry, onInspectTopic, plan }: {
   state: DemoState
   onSchoolChange: (schoolId: string) => void
   onRetry: () => void
+  onInspectTopic: (id: string) => void
+  plan: PlanData | null
 }) {
   const { dataset, overview, loading, error } = state
   // Sort before rounding; missing observations must not be treated as zero.
@@ -38,7 +41,7 @@ export default function Overview({ state, onSchoolChange, onRetry }: {
     {error && <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" disabled={loading} onClick={onRetry}>Повторить</button></div>}
     <div role="status" className="loading-message">{loading ? 'Загружаем показатели…' : ''}</div>
 
-    {dataset && overview ? <section className="overview-results" aria-label="Показатели обзора" aria-busy={loading}>
+    {dataset && overview ? <section id="analysis-start" tabIndex={-1} className="overview-results" aria-label="Показатели обзора" aria-busy={loading}>
       <div className="overview-toolbar">
         <div><h2>Результаты обучения</h2><p>Показатели выбранной группы школ</p></div>
         <div className="overview-controls">
@@ -57,12 +60,13 @@ export default function Overview({ state, onSchoolChange, onRetry }: {
         <article className="metric"><h3>Результаты ниже порога</h3><strong>{percent(overview.scores.below_threshold_pct)}</strong><p>Итоговый балл строго ниже {score(overview.mastery_threshold)}</p></article>
       </div>
       <p className="sample-note">В срезе: {integer.format(overview.scores.result_count)} результатов (пар ученик–тема).</p>
+      {!loading && topics[0] && <AnalysisSummary topic={topics[0]} threshold={overview.mastery_threshold} plan={plan} />}
 
       <section className="hardest-topics" aria-labelledby="hardest-title">
         <div className="section-heading"><h2 id="hardest-title">Три самые сложные темы</h2><span>По доле результатов ниже порога</span></div>
         {topics.length ? <ol className="topic-list">{topics.map((topic, index) => <li key={topic.topic_id}>
           <span className="topic-rank" aria-hidden="true">0{index + 1}</span>
-          <div className="topic-description"><h3>{topic.topic_name}</h3><p>{topic.topic_id} · Средний балл: {score(topic.scores.post_score_avg)} · Результатов: {integer.format(topic.scores.result_count)}</p></div>
+          <div className="topic-description"><h3>{topic.topic_name}</h3><p>{topic.topic_id} · Средний балл: {score(topic.scores.post_score_avg)} · Результатов: {integer.format(topic.scores.result_count)}</p><button className="text-button" disabled={loading} aria-label={`Разобрать тему «${topic.topic_name}»`} onClick={() => onInspectTopic(topic.topic_id)}>Разобрать тему →</button></div>
           <div className="topic-percent"><strong>{percent(topic.scores.below_threshold_pct)}</strong><span>ниже {score(overview.mastery_threshold)} баллов</span></div>
         </li>)}</ol> : <p className="empty-state">Нет результатов для определения сложных тем.</p>}
       </section>
