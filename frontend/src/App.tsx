@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Overview, { type DemoState } from './Overview'
 import Topics from './Topics'
 import Plan from './Plan'
@@ -39,6 +39,14 @@ export default function App() {
   const [planInvalidated, setPlanInvalidated] = useState(false)
   const [datasetError, setDatasetError] = useState<Error | null>(null)
   const [datasetAction, setDatasetAction] = useState<'demo' | 'upload' | null>(null)
+  const mainRef = useRef<HTMLElement>(null)
+
+  function compareTopic(topicId: string) {
+    setSelectedTopic(topicId)
+    setActive('textbooks')
+    mainRef.current?.focus({ preventScroll: true })
+    window.scrollTo(0, 0)
+  }
 
   async function replaceDataset(action: 'demo' | 'upload', load: () => Promise<Dataset>) {
     setDatasetAction(action)
@@ -90,7 +98,7 @@ export default function App() {
     </aside>
     <div className="workspace">
       <header className="topbar"><span>Рабочее пространство</span><div className="dataset-status"><span />{demo.dataset ? 'Данные загружены' : 'Данные не загружены'}</div></header>
-      <main id="main" tabIndex={-1}>
+      <main ref={mainRef} id="main" tabIndex={-1}>
         <div className="page-heading"><div><div className="breadcrumb">Панель методиста <span>/</span> {current.label}</div><h1>{current.label}</h1></div><span className="subject-tag">Математика · 7 класс</span></div>
         {active === 'overview' && <><DatasetControls busy={demo.loading} action={datasetAction} error={datasetError} onDemo={openDemo} onUpload={uploadDataset} /><Overview
           state={demo} onSchoolChange={changeSchool}
@@ -101,6 +109,7 @@ export default function App() {
           dataset={demo.dataset} schoolId={demo.overview?.school_id ?? ''}
           changingSchool={demo.loading} filterError={demo.error}
           onSchoolChange={changeSchool} onRetryFilter={() => changeSchool(requestedSchool)}
+          onCompareTopic={compareTopic}
           onOverview={() => setActive('overview')}
         />}
         {active === 'textbooks' && <Textbooks
