@@ -1,3 +1,4 @@
+import { DatasetBadge } from './DatasetControls'
 import { useEffect, useState } from 'react'
 import { curriculumApi, type Dataset, type TopicScores, type TextbookComparisonData } from './data/curriculum'
 
@@ -84,7 +85,7 @@ export default function Textbooks({ dataset, schoolId, topicId, changingSchool, 
   if (!dataset) return <section className="empty-state placeholder"><h2>Сначала откройте набор данных</h2><p>Откройте демо на «Обзоре», затем вернитесь к сравнению учебников.</p><button className="secondary-button" onClick={onOverview}>Перейти к обзору</button></section>
 
   return <section aria-label="Анализ учебников">
-    <div className="overview-toolbar"><div><h2>Сравнение учебников</h2><p>Результаты по одной теме в выбранном срезе</p></div>{dataset.is_demo && <span className="demo-badge">Демонстрационные данные</span>}</div>
+    <div className="overview-toolbar"><div><h2>Сравнение учебников</h2><p>Результаты по одной теме в выбранном срезе</p></div><DatasetBadge dataset={dataset} /></div>
     <div className="textbook-filters">
       <label className="school-filter topic-filter">Тема<select aria-label="Тема" value={topicId} disabled={!topics?.length || changingSchool} onChange={event => onTopicChange(event.target.value)}>{!topics?.length && <option value="">{topics ? 'Нет тем' : 'Загрузка тем…'}</option>}{topics?.map(topic => <option key={topic.topic_id} value={topic.topic_id}>{topic.topic_id} · {topic.topic_name}</option>)}</select></label>
       <label className="school-filter">Школа<select aria-label="Школа" value={schoolId} disabled={changingSchool} onChange={event => onSchoolChange(event.target.value)}><option value="">Все школы</option>{dataset.school_ids.map(id => <option key={id} value={id}>{id}</option>)}</select></label>

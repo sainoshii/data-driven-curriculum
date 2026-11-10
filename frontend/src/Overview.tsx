@@ -1,4 +1,5 @@
 import type { Dataset, OverviewData } from './data/curriculum'
+import { DatasetBadge } from './DatasetControls'
 
 export interface DemoState {
   dataset: Dataset | null
@@ -12,9 +13,8 @@ const integer = new Intl.NumberFormat('ru-RU')
 const score = (value: number | null) => value === null ? 'Нет данных' : decimal.format(value)
 const percent = (value: number | null) => value === null ? 'Нет данных' : `${decimal.format(value)}%`
 
-export default function Overview({ state, onOpenDemo, onSchoolChange, onRetry }: {
+export default function Overview({ state, onSchoolChange, onRetry }: {
   state: DemoState
-  onOpenDemo: () => void
   onSchoolChange: (schoolId: string) => void
   onRetry: () => void
 }) {
@@ -31,10 +31,6 @@ export default function Overview({ state, onOpenDemo, onSchoolChange, onRetry }:
         <span className="eyebrow">ОТ ДАННЫХ К УЧЕБНОМУ ПЛАНУ</span>
         <h2 id="welcome-title">Больше ясности.<br />Обоснованнее решения.</h2>
         <p>Находите сложные темы, сравнивайте результаты групп с разными учебниками и готовьте проект перераспределения учебных часов.</p>
-        <div className="demo-action">
-          <button className="primary-button" disabled={loading} onClick={onOpenDemo} aria-describedby="demo-note">{loading ? 'Открываем демо…' : 'Открыть демо'} <span aria-hidden="true">→</span></button>
-          <span id="demo-note">Математика, 7-й класс · синтетический набор</span>
-        </div>
       </div>
       <div className="welcome-art" aria-hidden="true"><div className="art-grid" /><div className="art-bars"><i /><i /><i /><i /><i /></div><div className="art-label"><span /> Анализ → решение</div></div>
     </section>}
@@ -46,7 +42,7 @@ export default function Overview({ state, onOpenDemo, onSchoolChange, onRetry }:
       <div className="overview-toolbar">
         <div><h2>Результаты обучения</h2><p>Показатели выбранной группы школ</p></div>
         <div className="overview-controls">
-          {dataset.is_demo && <span className="demo-badge">Демонстрационные данные</span>}
+          <DatasetBadge dataset={dataset} />
           <label className="school-filter">Школа
             <select value={overview.school_id ?? ''} onChange={event => onSchoolChange(event.target.value)} disabled={loading}>
               <option value="">Все школы</option>
@@ -73,7 +69,7 @@ export default function Overview({ state, onOpenDemo, onSchoolChange, onRetry }:
       {dataset.is_demo && <div className="context-note"><span className="info-mark">i</span><p>Синтетические данные для демонстрации. Они не описывают реальные результаты школьников.</p></div>}
     </section> : <section className="empty-state" aria-labelledby="empty-title">
       <h2 id="empty-title">Данные ещё не загружены</h2>
-      <p>Откройте демо, чтобы увидеть показатели и темы, требующие внимания.</p>
+      <p>Загрузите CSV или откройте демо, чтобы увидеть показатели и темы, требующие внимания.</p>
       <span className="empty-note">Нет данных для анализа</span>
     </section>}
   </>

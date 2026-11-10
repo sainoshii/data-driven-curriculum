@@ -1,3 +1,4 @@
+import { DatasetBadge } from './DatasetControls'
 import { useEffect, useRef, useState } from 'react'
 import { curriculumApi, type Dataset, type PlanData } from './data/curriculum'
 
@@ -82,7 +83,7 @@ export default function Plan({ dataset, schoolId, plan, invalidated, changingSch
   if (!dataset) return <section className="empty-state placeholder"><h2>Сначала откройте набор данных</h2><p>Откройте демо на «Обзоре», затем вернитесь к плану часов.</p><button className="secondary-button" onClick={onOverview}>Перейти к обзору</button></section>
 
   return <section aria-label="Проект плана часов" aria-busy={calculating || changingSchool}>
-    <div className="overview-toolbar"><div><h2>Перераспределение учебных часов</h2><p>Проект плана с основаниями каждого изменения</p></div><div className="overview-controls">{dataset.is_demo && <span className="demo-badge">Демонстрационные данные</span>}<label className="school-filter">Школа<select aria-label="Школа" value={schoolId} disabled={changingSchool || calculating || downloading} onChange={event => onSchoolChange(event.target.value)}><option value="">Все школы</option>{dataset.school_ids.map(id => <option key={id} value={id}>{id}</option>)}</select></label></div></div>
+    <div className="overview-toolbar"><div><h2>Перераспределение учебных часов</h2><p>Проект плана с основаниями каждого изменения</p></div><div className="overview-controls"><DatasetBadge dataset={dataset} /><label className="school-filter">Школа<select aria-label="Школа" value={schoolId} disabled={changingSchool || calculating || downloading} onChange={event => onSchoolChange(event.target.value)}><option value="">Все школы</option>{dataset.school_ids.map(id => <option key={id} value={id}>{id}</option>)}</select></label></div></div>
     {filterError && <div className="error-message" role="alert"><p>{filterError}</p><button className="secondary-button" disabled={changingSchool} onClick={onRetryFilter}>Повторить смену школы</button></div>}
     <div className="plan-actions"><button className="primary-button" disabled={calculating || downloading || changingSchool} onClick={calculate}>{calculating ? 'Рассчитываем…' : currentPlan ? 'Пересчитать план' : 'Рассчитать план'}</button><button className="secondary-button" disabled={!currentPlan || calculating || downloading || changingSchool} onClick={download}>{downloading ? 'Скачиваем…' : 'Скачать CSV'}</button></div>
     {(calculating || changingSchool) && <p className="loading-message" role="status">{changingSchool ? 'Обновляем школу…' : 'Рассчитываем проект плана…'}</p>}
