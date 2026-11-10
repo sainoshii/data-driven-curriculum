@@ -26,7 +26,14 @@ export interface CurriculumApi {
   getTopics(datasetId: string, schoolId?: string): Promise<TopicsData>
   getTextbookComparison(datasetId: string, topicId: string, schoolId?: string): Promise<TextbookComparisonData>
   createPlan(datasetId: string, schoolId?: string): Promise<PlanData>
+  transferPlanHours(datasetId: string, planId: string, transfer: TransferRequest): Promise<PlanData>
   exportPlan(datasetId: string, planId: string): Promise<Blob>
+}
+
+export interface TransferRequest {
+  from_topic_id: string
+  to_topic_id: string
+  hours: number
 }
 
 export interface ApiErrorDetail {
@@ -154,6 +161,9 @@ export const curriculumApi: CurriculumApi = {
   },
   createPlan(datasetId, schoolId) {
     return request<PlanData>(`/api/datasets/${encodeURIComponent(datasetId)}/plans`, 'POST', schoolId ? { school_id: schoolId } : {})
+  },
+  transferPlanHours(datasetId, planId, transfer) {
+    return request<PlanData>(`/api/datasets/${encodeURIComponent(datasetId)}/plans/${encodeURIComponent(planId)}/transfers`, 'POST', transfer)
   },
   async exportPlan(datasetId, planId) {
     const response = await requestResponse(`/api/datasets/${encodeURIComponent(datasetId)}/plans/${encodeURIComponent(planId)}/export`)

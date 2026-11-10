@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Overview, { type DemoState } from './Overview'
 import Topics from './Topics'
 import Plan from './Plan'
+import type { ScenarioState } from './PlanScenario'
 import Textbooks from './Textbooks'
 import DatasetControls from './DatasetControls'
 import { curriculumApi, type Dataset, type PlanData } from './data/curriculum'
@@ -34,6 +35,7 @@ export default function App() {
   const [requestedSchool, setRequestedSchool] = useState('')
   const [selectedTopic, setSelectedTopic] = useState('')
   const [plan, setPlan] = useState<PlanData | null>(null)
+  const [scenario, setScenario] = useState<ScenarioState | null>(null)
   const [planInvalidated, setPlanInvalidated] = useState(false)
   const [datasetError, setDatasetError] = useState<Error | null>(null)
   const [datasetAction, setDatasetAction] = useState<'demo' | 'upload' | null>(null)
@@ -49,6 +51,7 @@ export default function App() {
       setRequestedSchool('')
       setSelectedTopic('')
       setPlan(null)
+      setScenario(null)
       setPlanInvalidated(false)
     } catch (error) {
       setDatasetError(error instanceof Error ? error : new Error('Не удалось открыть набор. Повторите попытку.'))
@@ -67,6 +70,7 @@ export default function App() {
       const overview = await curriculumApi.getOverview(demo.dataset.dataset_id, schoolId || undefined)
       setDemo(previous => ({ ...previous, overview, loading: false, error: null }))
       setPlan(null)
+      setScenario(null)
       setPlanInvalidated(true)
     } catch (error) {
       setDemo(previous => ({ ...previous, loading: false, error: error instanceof Error ? error.message : 'Не удалось обновить показатели. Попробуйте ещё раз.' }))
@@ -110,9 +114,9 @@ export default function App() {
         {active === 'hours' && <Plan
           key={JSON.stringify([demo.dataset?.dataset_id, demo.overview?.school_id])}
           dataset={demo.dataset} schoolId={demo.overview?.school_id ?? ''}
-          plan={plan} invalidated={planInvalidated}
+          plan={plan} scenario={scenario} onScenarioChange={setScenario} invalidated={planInvalidated}
           changingSchool={demo.loading} filterError={demo.error}
-          onCalculated={result => { setPlan(result); setPlanInvalidated(false) }}
+          onCalculated={result => { setPlan(result); setScenario(null); setPlanInvalidated(false) }}
           onSchoolChange={changeSchool} onRetryFilter={() => changeSchool(requestedSchool)}
           onOverview={() => setActive('overview')}
         />}

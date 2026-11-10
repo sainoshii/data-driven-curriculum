@@ -1,6 +1,7 @@
 import { DatasetBadge } from './DatasetControls'
+import PlanScenario, { type ScenarioState } from './PlanScenario'
 import { useEffect, useRef, useState } from 'react'
-import { curriculumApi, type Dataset, type PlanData } from './data/curriculum'
+import { curriculumApi, type Dataset, type PlanData, type TransferRequest } from './data/curriculum'
 
 const number = new Intl.NumberFormat('ru-RU')
 const signed = new Intl.NumberFormat('ru-RU', { signDisplay: 'exceptZero' })
@@ -27,10 +28,12 @@ export function PlanResult({ plan }: { plan: PlanData }) {
   </>
 }
 
-export default function Plan({ dataset, schoolId, plan, invalidated, changingSchool, filterError, onCalculated, onSchoolChange, onRetryFilter, onOverview }: {
+export default function Plan({ dataset, schoolId, plan, scenario, onScenarioChange, invalidated, changingSchool, filterError, onCalculated, onSchoolChange, onRetryFilter, onOverview }: {
   dataset: Dataset | null
   schoolId: string
   plan: PlanData | null
+  scenario: ScenarioState | null
+  onScenarioChange: (scenario: ScenarioState | null) => void
   invalidated: boolean
   changingSchool: boolean
   filterError: string | null
@@ -43,15 +46,40 @@ export default function Plan({ dataset, schoolId, plan, invalidated, changingSch
   const [downloading, setDownloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [transferring, setTransferring] = useState(false)
+  const [transferError, setTransferError] = useState<string | null>(null)
   const active = useRef(true)
   useEffect(() => { active.current = true; return () => { active.current = false } }, [])
-  const currentPlan = dataset && plan && planMatchesScope(plan, dataset.dataset_id, schoolId) ? plan : null
+  const automaticPlan = dataset && plan && planMatchesScope(plan, dataset.dataset_id, schoolId) ? plan : null
+  const currentScenario = automaticPlan && scenario?.automaticPlanId === automaticPlan.plan_id && planMatchesScope(scenario.plan, automaticPlan.dataset_id, schoolId) ? scenario : null
+  const currentPlan = currentScenario?.plan ?? automaticPlan
+
+  async function transfer(transfer: TransferRequest) {
+    if (!currentPlan || !automaticPlan || calculating || downloading || transferring || changingSchool) return
+    setTransferring(true)
+    setError(null)
+    setTransferError(null)
+    setDownloadError(null)
+    try {
+      const result = await curriculumApi.transferPlanHours(currentPlan.dataset_id, currentPlan.plan_id, transfer)
+      if (active.current) onScenarioChange({ automaticPlanId: automaticPlan.plan_id, plan: result, change: {
+        ...transfer,
+        fromBefore: currentPlan.items.find(item => item.topic_id === transfer.from_topic_id)!.proposed_hours,
+        toBefore: currentPlan.items.find(item => item.topic_id === transfer.to_topic_id)!.proposed_hours,
+        fromAfter: result.items.find(item => item.topic_id === transfer.from_topic_id)!.proposed_hours,
+        toAfter: result.items.find(item => item.topic_id === transfer.to_topic_id)!.proposed_hours,
+      } })
+    } catch (reason) {
+      if (active.current) setTransferError(reason instanceof Error ? reason.message : 'Не удалось перенести часы.')
+    } finally { if (active.current) setTransferring(false) }
+  }
 
   async function calculate() {
-    if (!dataset) return
+    if (!dataset || calculating || downloading || transferring || changingSchool) return
     setCalculating(true)
     setError(null)
     setDownloadError(null)
+    setTransferError(null)
     try {
       const result = await curriculumApi.createPlan(dataset.dataset_id, schoolId || undefined)
       if (active.current) onCalculated(result)
@@ -61,7 +89,7 @@ export default function Plan({ dataset, schoolId, plan, invalidated, changingSch
   }
 
   async function download() {
-    if (!currentPlan) return
+    if (!currentPlan || calculating || downloading || transferring || changingSchool) return
     setDownloading(true)
     setDownloadError(null)
     try {
@@ -70,7 +98,7 @@ export default function Plan({ dataset, schoolId, plan, invalidated, changingSch
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `plan-${currentPlan.school_id ?? 'all'}.csv`
+      link.download = `plan-${currentPlan.school_id ?? 'all'}-${currentScenario ? 'scenario' : 'automatic'}.csv`
       document.body.append(link)
       link.click()
       link.remove()
@@ -82,13 +110,15 @@ export default function Plan({ dataset, schoolId, plan, invalidated, changingSch
 
   if (!dataset) return <section className="empty-state placeholder"><h2>Сначала откройте набор данных</h2><p>Откройте демо на «Обзоре», затем вернитесь к плану часов.</p><button className="secondary-button" onClick={onOverview}>Перейти к обзору</button></section>
 
-  return <section aria-label="Проект плана часов" aria-busy={calculating || changingSchool}>
-    <div className="overview-toolbar"><div><h2>Перераспределение учебных часов</h2><p>Проект плана с основаниями каждого изменения</p></div><div className="overview-controls"><DatasetBadge dataset={dataset} /><label className="school-filter">Школа<select aria-label="Школа" value={schoolId} disabled={changingSchool || calculating || downloading} onChange={event => onSchoolChange(event.target.value)}><option value="">Все школы</option>{dataset.school_ids.map(id => <option key={id} value={id}>{id}</option>)}</select></label></div></div>
-    {filterError && <div className="error-message" role="alert"><p>{filterError}</p><button className="secondary-button" disabled={changingSchool} onClick={onRetryFilter}>Повторить смену школы</button></div>}
-    <div className="plan-actions"><button className="primary-button" disabled={calculating || downloading || changingSchool} onClick={calculate}>{calculating ? 'Рассчитываем…' : currentPlan ? 'Пересчитать план' : 'Рассчитать план'}</button><button className="secondary-button" disabled={!currentPlan || calculating || downloading || changingSchool} onClick={download}>{downloading ? 'Скачиваем…' : 'Скачать CSV'}</button></div>
+  return <section aria-label="Проект плана часов" aria-busy={calculating || changingSchool || transferring}>
+    <div className="overview-toolbar"><div><h2>Перераспределение учебных часов</h2><p>Проект плана с основаниями каждого изменения</p></div><div className="overview-controls"><DatasetBadge dataset={dataset} /><label className="school-filter">Школа<select aria-label="Школа" value={schoolId} disabled={changingSchool || calculating || downloading || transferring} onChange={event => onSchoolChange(event.target.value)}><option value="">Все школы</option>{dataset.school_ids.map(id => <option key={id} value={id}>{id}</option>)}</select></label></div></div>
+    {filterError && <div className="error-message" role="alert"><p>{filterError}</p><button className="secondary-button" disabled={changingSchool || calculating || downloading || transferring} onClick={onRetryFilter}>Повторить смену школы</button></div>}
+    <div className="plan-actions"><button className="primary-button" disabled={calculating || downloading || changingSchool || transferring} onClick={calculate}>{calculating ? 'Рассчитываем…' : currentPlan ? 'Пересчитать план' : 'Рассчитать план'}</button><button className="secondary-button" disabled={!currentPlan || calculating || downloading || changingSchool || transferring} onClick={download}>{downloading ? 'Скачиваем…' : 'Скачать CSV'}</button></div>
     {(calculating || changingSchool) && <p className="loading-message" role="status">{changingSchool ? 'Обновляем школу…' : 'Рассчитываем проект плана…'}</p>}
-    {error && <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" onClick={calculate} disabled={calculating}>Повторить расчёт</button></div>}
-    {downloadError && <div className="error-message" role="alert"><p>{downloadError}</p><button className="secondary-button" onClick={download} disabled={downloading}>Повторить скачивание</button></div>}
+    {error && <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" onClick={calculate} disabled={calculating || downloading || transferring || changingSchool}>Повторить расчёт</button></div>}
+    {downloadError && <div className="error-message" role="alert"><p>{downloadError}</p><button className="secondary-button" onClick={download} disabled={calculating || downloading || transferring || changingSchool}>Повторить скачивание</button></div>}
+    {transferring && <p className="loading-message" role="status">Сохраняем вариант плана…</p>}
+    {!changingSchool && currentPlan && <PlanScenario key={automaticPlan!.plan_id} plan={currentPlan} scenario={currentScenario} busy={calculating || downloading || transferring} error={transferError} onTransfer={transfer} onRestore={() => { onScenarioChange(null); setTransferError(null); setDownloadError(null) }} />}
     {!changingSchool && (currentPlan ? <PlanResult plan={currentPlan} /> : <section className="empty-state"><h2>{invalidated ? 'Школа изменилась — нужен новый расчёт' : 'План ещё не рассчитан'}</h2><p>Рассчитайте план для среза «{schoolId || 'Все школы'}». После расчёта появятся часы, основания переносов и CSV.</p></section>)}
   </section>
 }
