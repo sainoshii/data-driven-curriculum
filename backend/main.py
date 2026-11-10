@@ -10,6 +10,7 @@ import pandas as pd
 from fastapi import Depends, FastAPI, File, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend.datasets import Dataset, DatasetData, DatasetStore, InvalidCSV, make_dataset, validate_results, validate_topics
@@ -29,6 +30,7 @@ from scripts.generate_demo_data import generate
 
 
 DEMO_ID = "demo"
+PUBLIC_DEMO = environ.get("CURRICULUM_PUBLIC_DEMO") == "1"
 DEFAULT_PLANS_DB = Path(__file__).resolve().parents[1] / "data" / "plans.sqlite3"
 DEFAULT_DATASETS_DB = DEFAULT_PLANS_DB.with_name("datasets.sqlite3")
 
@@ -93,16 +95,36 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
         topics = pd.read_csv(output_dir / "topics.csv", dtype={"topic_id": str})
     app.state.demo = make_dataset(DEMO_ID, results, topics, is_demo=True)
-    app.state.datasets = DatasetStore(Path(environ.get("CURRICULUM_DATASETS_DB", str(DEFAULT_DATASETS_DB))))
+    if not PUBLIC_DEMO:
+        app.state.datasets = DatasetStore(Path(environ.get("CURRICULUM_DATASETS_DB", str(DEFAULT_DATASETS_DB))))
     app.state.plans = PlanStore(Path(environ.get("CURRICULUM_PLANS_DB", str(DEFAULT_PLANS_DB))))
     yield
 
 
-app = FastAPI(title="Data-Driven Curriculum API", lifespan=lifespan)
+app = FastAPI(
+    title="Data-Driven Curriculum API",
+    lifespan=lifespan,
+    openapi_url=None if PUBLIC_DEMO else "/openapi.json",
+)
 
 
 def error_response(status: int, error: ApiError) -> JSONResponse:
     return JSONResponse(status_code=status, content=error.model_dump(exclude_none=True))
+
+
+if PUBLIC_DEMO:
+    @app.middleware("http")
+    async def block_upload(request: Request, call_next):
+        if request.method == "POST" and request.url.path.rstrip("/") == "/api/datasets":
+            return error_response(403, ApiError(
+                code="uploads_disabled", message="Публичная версия работает на демонстрационных данных.", details=[],
+            ))
+        return await call_next(request)
+
+
+@app.get("/healthz", include_in_schema=False)
+def health() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 @app.exception_handler(ApiFailure)
@@ -128,7 +150,7 @@ async def invalid_request(_request: Request, exc: RequestValidationError) -> JSO
 def resolve_dataset(request: Request, dataset_id: str) -> DatasetData:
     if dataset_id == DEMO_ID:
         return request.app.state.demo
-    dataset = request.app.state.datasets.load(dataset_id)
+    dataset = None if PUBLIC_DEMO else request.app.state.datasets.load(dataset_id)
     if dataset is None:
         raise ApiFailure(404, ApiError(code="dataset_not_found", message="Набор не найден.", details=[]))
     return dataset
@@ -325,3 +347,8 @@ def export_plan(request: Request, dataset: ResolvedDataset, plan_id: str) -> Res
         media_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="plan.csv"'},
     )
+
+
+frontend_dir = environ.get("CURRICULUM_FRONTEND_DIR")
+if frontend_dir:
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")

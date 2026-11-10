@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: data-driven-curriculum
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz

@@ -18,6 +18,7 @@ export function DatasetErrorMessage({ error }: { error: Error }) {
 }
 
 export type UploadFileNames = { results: string; topics: string }
+const publicDemo = import.meta.env.VITE_PUBLIC_DEMO === 'true'
 
 export default function DatasetControls({ hidden, activeUpload, busy, action, error, onDemo, onUpload }: {
   hidden: boolean
@@ -47,13 +48,13 @@ export default function DatasetControls({ hidden, activeUpload, busy, action, er
     </div>}
     <div className="dataset-options">
       <div className="demo-option"><button className="primary-button" onClick={onDemo} disabled={busy}>{busy && action === 'demo' ? 'Открываем демо…' : 'Открыть демо'}</button><p>Математика, 7-й класс.<br />Синтетические результаты.</p></div>
-      <form onSubmit={submit} className="upload-form">
+      {!publicDemo && <form onSubmit={submit} className="upload-form">
         <fieldset disabled={busy}><legend>{activeUpload ? 'Заменить набор CSV' : 'Загрузить свои CSV'}</legend>
           <div className="upload-fields"><label>results.csv — результаты<input name="results" type="file" accept=".csv,text/csv" required onChange={event => setResults(event.target.files?.[0] ?? null)} /></label>
           <label>topics.csv — темы и часы<input name="topics" type="file" accept=".csv,text/csv" required onChange={event => setTopics(event.target.files?.[0] ?? null)} /></label></div>
           <div className="upload-submit"><button className="secondary-button" type="submit" disabled={!results || !topics}>{busy && action === 'upload' ? 'Загружаем CSV…' : 'Загрузить CSV'}</button><p>Два файла в UTF-8, разделитель — запятая. До 5 МиБ каждый.</p></div>
         </fieldset>
-      </form>
+      </form>}
     </div>
     {error && <DatasetErrorMessage error={error} />}
   </section>

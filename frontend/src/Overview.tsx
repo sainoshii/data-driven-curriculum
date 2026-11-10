@@ -69,7 +69,9 @@ export default function Overview({ state, onSchoolChange, onRetry }: {
       {dataset.is_demo && <div className="context-note"><span className="info-mark">i</span><p>Синтетические данные для демонстрации. Они не описывают реальные результаты школьников.</p></div>}
     </section> : <section className="empty-state" aria-labelledby="empty-title">
       <h2 id="empty-title">Данные ещё не загружены</h2>
-      <p>Загрузите CSV или откройте демо, чтобы увидеть показатели и темы, требующие внимания.</p>
+      <p>{import.meta.env.VITE_PUBLIC_DEMO === 'true'
+        ? 'Откройте демо, чтобы увидеть показатели и темы, требующие внимания.'
+        : 'Загрузите CSV или откройте демо, чтобы увидеть показатели и темы, требующие внимания.'}</p>
       <span className="empty-note">Нет данных для анализа</span>
     </section>}
   </>

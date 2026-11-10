@@ -1,0 +1,14 @@
+**
+!backend/
+!backend/*.py
+!backend/requirements.txt
+!scripts/
+!scripts/generate_demo_data.py
+!frontend/
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/index.html
+!frontend/vite.config.ts
+!frontend/tsconfig.json
+!frontend/src/
+!frontend/src/**
