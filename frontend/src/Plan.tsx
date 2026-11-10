@@ -1,0 +1,93 @@
+import { useEffect, useRef, useState } from 'react'
+import { curriculumApi, type Dataset, type PlanData } from './data/curriculum'
+
+const number = new Intl.NumberFormat('ru-RU')
+const signed = new Intl.NumberFormat('ru-RU', { signDisplay: 'exceptZero' })
+
+export function planMatchesScope(plan: PlanData, datasetId: string, schoolId: string) {
+  return plan.dataset_id === datasetId && plan.school_id === (schoolId || null)
+}
+
+export function PlanResult({ plan }: { plan: PlanData }) {
+  const names = new Map(plan.items.map(item => [item.topic_id, item.topic_name]))
+  return <>
+    <div className="plan-explanation" role="status"><h3>{plan.status === 'no_changes' ? 'План без изменений' : 'Проект перераспределения готов'}</h3><p>{plan.explanation}</p></div>
+    <div className="plan-budget">
+      <article className="metric"><h3>Общий бюджет до</h3><strong>{number.format(plan.current_total_hours)}</strong><p>Учебных часов</p></article>
+      <article className="metric"><h3>Общий бюджет после</h3><strong>{number.format(plan.proposed_total_hours)}</strong><p>{plan.current_total_hours === plan.proposed_total_hours ? 'Бюджет сохранён' : 'Бюджет изменился — проверьте план'}</p></article>
+    </div>
+    <section className="plan-section" aria-labelledby="transfers-title"><h2 id="transfers-title">Откуда и куда переносятся часы</h2>
+      {plan.transfers.length ? <ul className="transfer-list">{plan.transfers.map((transfer, index) => <li key={`${transfer.from_topic_id}:${transfer.to_topic_id}:${index}`}><div><span className="topic-code">{transfer.from_topic_id}</span>{names.get(transfer.from_topic_id) ?? transfer.from_topic_id}</div><strong>{number.format(transfer.hours)} ч →</strong><div><span className="topic-code">{transfer.to_topic_id}</span>{names.get(transfer.to_topic_id) ?? transfer.to_topic_id}</div></li>)}</ul> : <p className="sample-note">Переносов часов нет.</p>}
+    </section>
+    <section className="plan-section" aria-labelledby="hours-table-title"><h2 id="hours-table-title">Часы и основания по темам</h2>
+      <div className="table-scroll" role="region" aria-label="План часов по темам" tabIndex={0}><table className="plan-table"><caption>{plan.items.length} тем · {plan.school_id ?? 'Все школы'}</caption><thead><tr><th scope="col">Тема</th><th scope="col">Было</th><th scope="col">Предложено</th><th scope="col">Изменение</th><th scope="col">Основание</th></tr></thead><tbody>{plan.items.map(item => <tr key={item.topic_id}><th scope="row"><span className="topic-code">{item.topic_id}</span>{item.topic_name}</th><td>{number.format(item.current_hours)}</td><td>{number.format(item.proposed_hours)}</td><td className={item.delta_hours === 0 ? '' : 'hours-changed'}>{signed.format(item.delta_hours)}</td><td>{item.reason}</td></tr>)}</tbody><tfoot><tr><th scope="row">Итого</th><td>{number.format(plan.current_total_hours)}</td><td>{number.format(plan.proposed_total_hours)}</td><td>{signed.format(plan.proposed_total_hours - plan.current_total_hours)}</td><td>Общий бюджет плана</td></tr></tfoot></table></div>
+    </section>
+    <div className="context-note"><span className="info-mark">i</span><p>Это проект плана для обсуждения методистом. CSV содержит сохранённый сервером снимок этого расчёта.</p></div>
+  </>
+}
+
+export default function Plan({ dataset, schoolId, plan, invalidated, changingSchool, filterError, onCalculated, onSchoolChange, onRetryFilter, onOverview }: {
+  dataset: Dataset | null
+  schoolId: string
+  plan: PlanData | null
+  invalidated: boolean
+  changingSchool: boolean
+  filterError: string | null
+  onCalculated: (plan: PlanData) => void
+  onSchoolChange: (id: string) => void
+  onRetryFilter: () => void
+  onOverview: () => void
+}) {
+  const [calculating, setCalculating] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  const active = useRef(true)
+  useEffect(() => { active.current = true; return () => { active.current = false } }, [])
+  const currentPlan = dataset && plan && planMatchesScope(plan, dataset.dataset_id, schoolId) ? plan : null
+
+  async function calculate() {
+    if (!dataset) return
+    setCalculating(true)
+    setError(null)
+    setDownloadError(null)
+    try {
+      const result = await curriculumApi.createPlan(dataset.dataset_id, schoolId || undefined)
+      if (active.current) onCalculated(result)
+    } catch (reason) {
+      if (active.current) setError(reason instanceof Error ? reason.message : 'Не удалось рассчитать план.')
+    } finally { if (active.current) setCalculating(false) }
+  }
+
+  async function download() {
+    if (!currentPlan) return
+    setDownloading(true)
+    setDownloadError(null)
+    try {
+      const blob = await curriculumApi.exportPlan(currentPlan.dataset_id, currentPlan.plan_id)
+      if (!active.current) return
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `plan-${currentPlan.school_id ?? 'all'}.csv`
+      document.body.append(link)
+      link.click()
+      link.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (reason) {
+      if (active.current) setDownloadError(reason instanceof Error ? reason.message : 'Не удалось скачать CSV.')
+    } finally { if (active.current) setDownloading(false) }
+  }
+
+  if (!dataset) return <section className="empty-state placeholder"><h2>Сначала откройте набор данных</h2><p>Откройте демо на «Обзоре», затем вернитесь к плану часов.</p><button className="secondary-button" onClick={onOverview}>Перейти к обзору</button></section>
+
+  return <section aria-label="Проект плана часов" aria-busy={calculating || changingSchool}>
+    <div className="overview-toolbar"><div><h2>Перераспределение учебных часов</h2><p>Проект плана с основаниями каждого изменения</p></div><div className="overview-controls">{dataset.is_demo && <span className="demo-badge">Демонстрационные данные</span>}<label className="school-filter">Школа<select aria-label="Школа" value={schoolId} disabled={changingSchool || calculating || downloading} onChange={event => onSchoolChange(event.target.value)}><option value="">Все школы</option>{dataset.school_ids.map(id => <option key={id} value={id}>{id}</option>)}</select></label></div></div>
+    {filterError && <div className="error-message" role="alert"><p>{filterError}</p><button className="secondary-button" disabled={changingSchool} onClick={onRetryFilter}>Повторить смену школы</button></div>}
+    <div className="plan-actions"><button className="primary-button" disabled={calculating || downloading || changingSchool} onClick={calculate}>{calculating ? 'Рассчитываем…' : currentPlan ? 'Пересчитать план' : 'Рассчитать план'}</button><button className="secondary-button" disabled={!currentPlan || calculating || downloading || changingSchool} onClick={download}>{downloading ? 'Скачиваем…' : 'Скачать CSV'}</button></div>
+    {(calculating || changingSchool) && <p className="loading-message" role="status">{changingSchool ? 'Обновляем школу…' : 'Рассчитываем проект плана…'}</p>}
+    {error && <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" onClick={calculate} disabled={calculating}>Повторить расчёт</button></div>}
+    {downloadError && <div className="error-message" role="alert"><p>{downloadError}</p><button className="secondary-button" onClick={download} disabled={downloading}>Повторить скачивание</button></div>}
+    {!changingSchool && (currentPlan ? <PlanResult plan={currentPlan} /> : <section className="empty-state"><h2>{invalidated ? 'Школа изменилась — нужен новый расчёт' : 'План ещё не рассчитан'}</h2><p>Рассчитайте план для среза «{schoolId || 'Все школы'}». После расчёта появятся часы, основания переносов и CSV.</p></section>)}
+  </section>
+}

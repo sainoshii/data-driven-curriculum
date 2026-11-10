@@ -73,6 +73,25 @@
 .heat-missing { background: repeating-linear-gradient(135deg, #f6f7f9, #f6f7f9 4px, #e9ecf1 4px, #e9ecf1 5px); color: #526176; }
 .table-scroll { position: relative; }
 
+.plan-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0; }
+.plan-actions .secondary-button { margin: 0; }
+.plan-explanation { background: #eef1fc; border: 1px solid #dce3f6; border-radius: 9px; padding: 20px; margin: 24px 0; }
+.plan-explanation h3 { font-size: 15px; margin-bottom: 8px; }
+.plan-explanation p { color: #536176; font-size: 13px; }
+.plan-budget { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.plan-section { margin-top: 28px; }
+.plan-section h2 { font-size: 18px; margin-bottom: 16px; }
+.transfer-list { list-style: none; padding: 0; margin: 0; border: 1px solid #e0e5ed; background: white; border-radius: 10px; }
+.transfer-list li { display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center; padding: 20px; font-size: 13px; line-height: 1.6; }
+.transfer-list li + li { border-top: 1px solid #e7eaf2; }
+.transfer-list strong { color: #5263a4; white-space: nowrap; }
+.plan-table { min-width: 800px; }
+.plan-table th:first-child { text-align: left; min-width: 220px; font-weight: 500; }
+.plan-table td:last-child { text-align: left; min-width: 270px; font-size: 12px; color: #657187; }
+.plan-table tfoot { background: #f7f8fc; font-weight: 650; }
+.hours-changed { color: #475dab; font-weight: 650; }
+@media (max-width: 760px) { .plan-budget { grid-template-columns: 1fr; } .transfer-list li { grid-template-columns: 1fr; gap: 10px; } }
+
 .textbook-section { margin-top: 28px; }
 .textbook-section h2 { font-size: 18px; font-weight: 600; }
 .textbook-section .sample-note { margin: 12px 0 18px; line-height: 1.7; }
