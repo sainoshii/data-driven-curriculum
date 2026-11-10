@@ -128,6 +128,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Plan' }
+              examples:
+                demo: { externalValue: examples/demo-plan.json }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/InvalidInput' }
 
