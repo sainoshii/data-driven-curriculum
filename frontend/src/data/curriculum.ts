@@ -23,6 +23,7 @@ export interface CurriculumApi {
   openDemoDataset(): Promise<Dataset>
   getOverview(datasetId: string, schoolId?: string): Promise<OverviewData>
   getTopics(datasetId: string, schoolId?: string): Promise<TopicsData>
+  getTextbookComparison(datasetId: string, topicId: string, schoolId?: string): Promise<TextbookComparisonData>
   createPlan(datasetId: string, schoolId?: string): Promise<PlanData>
   exportPlan(datasetId: string, planId: string): Promise<Blob>
 }
@@ -46,6 +47,27 @@ export interface PlanData {
     reason: string
   }[]
   transfers: { from_topic_id: string; to_topic_id: string; hours: number }[]
+}
+
+export interface TextbookComparisonData {
+  dataset_id: string
+  school_id: string | null
+  topic_id: string
+  groups: {
+    textbook_id: string
+    student_count: number
+    pre_score_avg: number
+    post_score_avg: number
+    gain_avg: number
+  }[]
+  comparisons: {
+    left_textbook_id: string
+    right_textbook_id: string
+    left_student_count: number
+    right_student_count: number
+    status: 'ok' | 'insufficient_data'
+    gain_difference: number | null
+  }[]
 }
 
 export interface TopicScores {
@@ -113,5 +135,10 @@ export const curriculumApi: CurriculumApi = {
     const response = await requestResponse(`/api/datasets/${encodeURIComponent(datasetId)}/plans/${encodeURIComponent(planId)}/export`)
     if (!response.headers.get('content-type')?.includes('text/csv')) throw new Error('Сервер вернул файл в неожиданном формате. Повторите скачивание.')
     return response.blob()
+  },
+  getTextbookComparison(datasetId, topicId, schoolId) {
+    const query = new URLSearchParams({ topic_id: topicId })
+    if (schoolId) query.set('school_id', schoolId)
+    return request<TextbookComparisonData>(`/api/datasets/${encodeURIComponent(datasetId)}/textbook-comparison?${query}`)
   },
 }

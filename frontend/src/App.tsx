@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Overview, { type DemoState } from './Overview'
 import Topics from './Topics'
 import Plan from './Plan'
+import Textbooks from './Textbooks'
 import { curriculumApi, type PlanData } from './data/curriculum'
 
 const sections = [
@@ -26,14 +27,11 @@ function Icon({ name, className = '' }: { name: IconName; className?: string }) 
   return <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>
 }
 
-const placeholderCopy: Record<'textbooks', string> = {
-  textbooks: 'Здесь появится сравнение прироста баллов у сопоставимых групп с разными учебниками и размеры выборок.',
-}
-
 export default function App() {
   const [active, setActive] = useState<Section>('overview')
   const [demo, setDemo] = useState<DemoState>({ dataset: null, overview: null, loading: false, error: null })
   const [requestedSchool, setRequestedSchool] = useState('')
+  const [selectedTopic, setSelectedTopic] = useState('')
   const [plan, setPlan] = useState<PlanData | null>(null)
   const [planInvalidated, setPlanInvalidated] = useState(false)
 
@@ -77,7 +75,34 @@ export default function App() {
       <header className="topbar"><span>Рабочее пространство</span><div className="dataset-status"><span />{demo.dataset ? 'Данные загружены' : 'Данные не загружены'}</div></header>
       <main id="main" tabIndex={-1}>
         <div className="page-heading"><div><div className="breadcrumb">Панель методиста <span>/</span> {current.label}</div><h1>{current.label}</h1></div><span className="subject-tag">Математика · 7 класс</span></div>
-        {active === 'overview' ? <Overview state={demo} onOpenDemo={openDemo} onSchoolChange={changeSchool} onRetry={() => demo.dataset ? changeSchool(requestedSchool) : openDemo()} /> : active === 'topics' ? <Topics key={`${demo.dataset?.dataset_id}:${demo.overview?.school_id ?? ''}`} dataset={demo.dataset} schoolId={demo.overview?.school_id ?? ''} changingSchool={demo.loading} filterError={demo.error} onSchoolChange={changeSchool} onRetryFilter={() => changeSchool(requestedSchool)} onOverview={() => setActive('overview')} /> : active === 'hours' ? <Plan key={JSON.stringify([demo.dataset?.dataset_id, demo.overview?.school_id])} dataset={demo.dataset} schoolId={demo.overview?.school_id ?? ''} plan={plan} invalidated={planInvalidated} changingSchool={demo.loading} filterError={demo.error} onCalculated={result => { setPlan(result); setPlanInvalidated(false) }} onSchoolChange={changeSchool} onRetryFilter={() => changeSchool(requestedSchool)} onOverview={() => setActive('overview')} /> : <section className="empty-state placeholder" aria-labelledby="placeholder-title"><div className="empty-icon"><Icon name={current.icon} /></div><span className="eyebrow">СЛЕДУЮЩИЙ ЭТАП</span><h2 id="placeholder-title">{current.label}: раздел в разработке</h2><p>{placeholderCopy[active]}</p><button className="secondary-button" onClick={() => setActive('overview')}>Вернуться к обзору <Icon name="arrow" /></button></section>}
+        {active === 'overview' && <Overview
+          state={demo} onOpenDemo={openDemo} onSchoolChange={changeSchool}
+          onRetry={() => demo.dataset ? changeSchool(requestedSchool) : openDemo()}
+        />}
+        {active === 'topics' && <Topics
+          key={JSON.stringify([demo.dataset?.dataset_id, demo.overview?.school_id])}
+          dataset={demo.dataset} schoolId={demo.overview?.school_id ?? ''}
+          changingSchool={demo.loading} filterError={demo.error}
+          onSchoolChange={changeSchool} onRetryFilter={() => changeSchool(requestedSchool)}
+          onOverview={() => setActive('overview')}
+        />}
+        {active === 'textbooks' && <Textbooks
+          key={demo.dataset?.dataset_id}
+          dataset={demo.dataset} schoolId={demo.overview?.school_id ?? ''}
+          topicId={selectedTopic} onTopicChange={setSelectedTopic}
+          changingSchool={demo.loading} filterError={demo.error}
+          onSchoolChange={changeSchool} onRetryFilter={() => changeSchool(requestedSchool)}
+          onOverview={() => setActive('overview')}
+        />}
+        {active === 'hours' && <Plan
+          key={JSON.stringify([demo.dataset?.dataset_id, demo.overview?.school_id])}
+          dataset={demo.dataset} schoolId={demo.overview?.school_id ?? ''}
+          plan={plan} invalidated={planInvalidated}
+          changingSchool={demo.loading} filterError={demo.error}
+          onCalculated={result => { setPlan(result); setPlanInvalidated(false) }}
+          onSchoolChange={changeSchool} onRetryFilter={() => changeSchool(requestedSchool)}
+          onOverview={() => setActive('overview')}
+        />}
         <footer>Data-Driven Curriculum <span>Инструмент поддержки решений методиста</span></footer>
       </main>
     </div>
