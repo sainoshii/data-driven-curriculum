@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from os import environ
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Annotated
@@ -8,27 +9,23 @@ from typing import Annotated
 import pandas as pd
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
+from backend.metrics import MASTERY_THRESHOLD, Scores, summarize
+from backend.plans import Plan, PlanRequest, PlanStore, build_plan, export_csv
 from backend.textbooks import TextbookComparison, build_textbook_comparison
 from scripts.generate_demo_data import generate
 
 
 DEMO_ID = "demo"
-MASTERY_THRESHOLD = 60
+DEFAULT_PLANS_DB = Path(__file__).resolve().parents[1] / "data" / "plans.sqlite3"
 
 
 class Dataset(BaseModel):
     dataset_id: str
     is_demo: bool
     school_ids: list[str]
-
-
-class Scores(BaseModel):
-    result_count: int
-    post_score_avg: float | None
-    below_threshold_pct: float | None
 
 
 class TopicScores(BaseModel):
@@ -103,6 +100,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         results=results.merge(topics[["topic_id", "topic_name"]], on="topic_id", validate="many_to_one"),
         topics=topics,
     )
+    app.state.plans = PlanStore(Path(environ.get("CURRICULUM_PLANS_DB", str(DEFAULT_PLANS_DB))))
     yield
 
 
@@ -125,15 +123,6 @@ async def invalid_request(_request: Request, exc: RequestValidationError) -> JSO
                 for item in exc.errors()
             ],
         ),
-    )
-
-
-def summarize(scores: pd.Series) -> Scores:
-    count = len(scores)
-    return Scores(
-        result_count=count,
-        post_score_avg=float(scores.mean()) if count else None,
-        below_threshold_pct=100 * int((scores < MASTERY_THRESHOLD).sum()) / count if count else None,
     )
 
 
@@ -255,4 +244,50 @@ def compare_textbooks(
     results = demo.results_for_school(school_id)
     return build_textbook_comparison(
         results[results["topic_id"] == topic_id], dataset_id=dataset_id, topic_id=topic_id, school_id=school_id
+    )
+
+
+@app.post(
+    "/api/datasets/{dataset_id}/plans",
+    operation_id="createPlan",
+    response_model=Plan,
+    status_code=201,
+    responses={404: {"model": ApiError}, 422: {"model": ApiError}},
+)
+def create_plan(request: Request, dataset_id: str, body: PlanRequest) -> Plan | JSONResponse:
+    demo: DemoData = request.app.state.demo
+    error = scope_error(demo, dataset_id, body.school_id)
+    if error is not None:
+        return error_response(404, error)
+    plan = build_plan(
+        demo.topics,
+        demo.results_for_school(body.school_id),
+        dataset_id=dataset_id,
+        school_id=body.school_id,
+    )
+    request.app.state.plans.save(plan)
+    return plan
+
+
+@app.get(
+    "/api/datasets/{dataset_id}/plans/{plan_id}/export",
+    operation_id="exportPlan",
+    response_class=Response,
+    responses={
+        200: {"content": {"text/csv": {"schema": {"type": "string"}}}},
+        404: {"model": ApiError},
+    },
+)
+def export_plan(request: Request, dataset_id: str, plan_id: str) -> Response:
+    demo: DemoData = request.app.state.demo
+    error = scope_error(demo, dataset_id, None)
+    if error is not None:
+        return error_response(404, error)
+    plan = request.app.state.plans.load(dataset_id, plan_id)
+    if plan is None:
+        return error_response(404, ApiError(code="plan_not_found", message="План не найден.", details=[]))
+    return Response(
+        content=export_csv(plan),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="plan.csv"'},
     )

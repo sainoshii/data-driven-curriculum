@@ -1,0 +1,354 @@
+{
+  "dataset_id": "demo",
+  "plan_id": "demo-plan-example",
+  "school_id": null,
+  "mastery_threshold": 60,
+  "status": "recommended",
+  "explanation": "Часы перенесены из хорошо освоенных тем в сложные. Общий бюджет сохранён.",
+  "current_total_hours": 119,
+  "proposed_total_hours": 119,
+  "items": [
+    {
+      "topic_id": "T01",
+      "topic_name": "Числовые выражения",
+      "current_hours": 4,
+      "proposed_hours": 2,
+      "delta_hours": -2,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 83.9545,
+        "below_threshold_pct": 3.1
+      },
+      "reason": "3.1% результатов ниже порога (2000 результатов). Передать резерв часов сложной теме."
+    },
+    {
+      "topic_id": "T02",
+      "topic_name": "Степень с натуральным показателем",
+      "current_hours": 5,
+      "proposed_hours": 5,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 66.6925,
+        "below_threshold_pct": 30.5
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T03",
+      "topic_name": "Свойства степеней",
+      "current_hours": 5,
+      "proposed_hours": 5,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 67.1175,
+        "below_threshold_pct": 29.0
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T04",
+      "topic_name": "Одночлены",
+      "current_hours": 4,
+      "proposed_hours": 4,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 66.8115,
+        "below_threshold_pct": 30.55
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T05",
+      "topic_name": "Многочлены",
+      "current_hours": 6,
+      "proposed_hours": 6,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 66.87,
+        "below_threshold_pct": 30.8
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T06",
+      "topic_name": "Умножение многочленов",
+      "current_hours": 6,
+      "proposed_hours": 6,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 66.808,
+        "below_threshold_pct": 30.7
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T07",
+      "topic_name": "Формулы сокращённого умножения",
+      "current_hours": 6,
+      "proposed_hours": 6,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 66.6605,
+        "below_threshold_pct": 30.3
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T08",
+      "topic_name": "Разложение многочлена на множители",
+      "current_hours": 5,
+      "proposed_hours": 7,
+      "delta_hours": 2,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 49.8315,
+        "below_threshold_pct": 75.5
+      },
+      "reason": "75.5% результатов ниже порога (2000 результатов). Добавить часы для проработки темы."
+    },
+    {
+      "topic_id": "T09",
+      "topic_name": "Линейные уравнения",
+      "current_hours": 5,
+      "proposed_hours": 5,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 69.7645,
+        "below_threshold_pct": 24.25
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T10",
+      "topic_name": "Текстовые задачи на уравнения",
+      "current_hours": 5,
+      "proposed_hours": 5,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 70.1725,
+        "below_threshold_pct": 24.15
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T11",
+      "topic_name": "Системы линейных уравнений",
+      "current_hours": 5,
+      "proposed_hours": 7,
+      "delta_hours": 2,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 49.703,
+        "below_threshold_pct": 75.35
+      },
+      "reason": "75.3% результатов ниже порога (2000 результатов). Добавить часы для проработки темы."
+    },
+    {
+      "topic_id": "T12",
+      "topic_name": "Координатная плоскость",
+      "current_hours": 4,
+      "proposed_hours": 2,
+      "delta_hours": -2,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 83.7315,
+        "below_threshold_pct": 3.5
+      },
+      "reason": "3.5% результатов ниже порога (2000 результатов). Передать резерв часов сложной теме."
+    },
+    {
+      "topic_id": "T13",
+      "topic_name": "Линейная функция и её график",
+      "current_hours": 6,
+      "proposed_hours": 6,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 66.6385,
+        "below_threshold_pct": 30.3
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T14",
+      "topic_name": "Прямая пропорциональность",
+      "current_hours": 4,
+      "proposed_hours": 4,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 66.771,
+        "below_threshold_pct": 30.35
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T15",
+      "topic_name": "Таблицы и графики данных",
+      "current_hours": 4,
+      "proposed_hours": 4,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 70.0645,
+        "below_threshold_pct": 24.55
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T16",
+      "topic_name": "Среднее, медиана и размах",
+      "current_hours": 4,
+      "proposed_hours": 4,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 70.0405,
+        "below_threshold_pct": 24.5
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T17",
+      "topic_name": "Частота и относительная частота",
+      "current_hours": 4,
+      "proposed_hours": 4,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 66.5465,
+        "below_threshold_pct": 31.3
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T18",
+      "topic_name": "Смежные и вертикальные углы",
+      "current_hours": 4,
+      "proposed_hours": 2,
+      "delta_hours": -2,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 83.663,
+        "below_threshold_pct": 3.55
+      },
+      "reason": "3.5% результатов ниже порога (2000 результатов). Передать резерв часов сложной теме."
+    },
+    {
+      "topic_id": "T19",
+      "topic_name": "Параллельные прямые",
+      "current_hours": 5,
+      "proposed_hours": 5,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 70.0165,
+        "below_threshold_pct": 24.15
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T20",
+      "topic_name": "Признаки равенства треугольников",
+      "current_hours": 6,
+      "proposed_hours": 6,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 70.0605,
+        "below_threshold_pct": 25.2
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T21",
+      "topic_name": "Равнобедренный треугольник",
+      "current_hours": 4,
+      "proposed_hours": 4,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 66.6725,
+        "below_threshold_pct": 29.85
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T22",
+      "topic_name": "Сумма углов треугольника",
+      "current_hours": 4,
+      "proposed_hours": 4,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 67.0145,
+        "below_threshold_pct": 30.55
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T23",
+      "topic_name": "Геометрические доказательства",
+      "current_hours": 5,
+      "proposed_hours": 7,
+      "delta_hours": 2,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 50.004,
+        "below_threshold_pct": 74.7
+      },
+      "reason": "74.7% результатов ниже порога (2000 результатов). Добавить часы для проработки темы."
+    },
+    {
+      "topic_id": "T24",
+      "topic_name": "Неравенство треугольника",
+      "current_hours": 4,
+      "proposed_hours": 4,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 66.6845,
+        "below_threshold_pct": 31.3
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    },
+    {
+      "topic_id": "T25",
+      "topic_name": "Построения циркулем и линейкой",
+      "current_hours": 5,
+      "proposed_hours": 5,
+      "delta_hours": 0,
+      "scores": {
+        "result_count": 2000,
+        "post_score_avg": 66.8765,
+        "below_threshold_pct": 30.35
+      },
+      "reason": "Нет допустимого переноса по заданным правилам."
+    }
+  ],
+  "transfers": [
+    {
+      "from_topic_id": "T01",
+      "to_topic_id": "T08",
+      "hours": 2
+    },
+    {
+      "from_topic_id": "T12",
+      "to_topic_id": "T11",
+      "hours": 2
+    },
+    {
+      "from_topic_id": "T18",
+      "to_topic_id": "T23",
+      "hours": 2
+    }
+  ]
+}

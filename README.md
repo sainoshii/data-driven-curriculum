@@ -51,6 +51,10 @@ curl 'http://127.0.0.1:8000/api/datasets/demo/textbook-comparison?topic_id=T09'
 
 Сравнение учебников требует `topic_id` и принимает необязательный `school_id`. Пример для линейных уравнений — [demo-textbook-comparison-t09.json](contracts/examples/demo-textbook-comparison-t09.json). `groups` содержит сводки по учебникам, `comparisons` — наблюдаемые различия прироста внутри сопоставимых групп.
 
+Для плана отправь `POST /api/datasets/demo/plans` с JSON `{}` для всех школ или `{"school_id":"S01"}` для одной. План учитывает темы с минимум 20 результатами. Он переносит до двух часов на тему от групп с долей ниже порога не более 10% к группам с долей от 50%, соблюдая минимумы, максимумы и общий бюджет. Пример — [demo-plan.json](contracts/examples/demo-plan.json).
+
+Планы сохраняются в `data/plans.sqlite3` (путь можно задать через `CURRICULUM_PLANS_DB`). Экспорт `GET /api/datasets/demo/plans/{plan_id}/export` скачивает сохранённый план.
+
 Интерфейс может отправлять запросы на относительные пути `/api/…`. Для локальной разработки настрой прокси Vite для `/api` на `http://127.0.0.1:8000`. Поля ответов описаны в [контракте API](contracts/README.md).
 
 Для запуска тестов генератора и API из корня проекта:
