@@ -1,6 +1,7 @@
 import { DatasetBadge } from './DatasetControls'
 import PlanScenario, { type ScenarioState } from './PlanScenario'
 import PlanSchoolContext from './PlanSchoolContext'
+import PlanComparison from './PlanComparison'
 import { useEffect, useRef, useState } from 'react'
 import { curriculumApi, type Dataset, type PlanData, type TransferRequest } from './data/curriculum'
 
@@ -30,7 +31,7 @@ export function PlanResult({ plan }: { plan: PlanData }) {
   </>
 }
 
-export default function Plan({ dataset, schoolId, plan, scenario, onScenarioChange, invalidated, changingSchool, filterError, onCalculated, onSchoolChange, onRetryFilter, onOverview }: {
+export default function Plan({ dataset, schoolId, plan, scenario, onScenarioChange, invalidated, changingSchool, filterError, onCalculated, onSchoolChange, onRetryFilter, onOverview, focusTopic }: {
   dataset: Dataset | null
   schoolId: string
   plan: PlanData | null
@@ -43,6 +44,7 @@ export default function Plan({ dataset, schoolId, plan, scenario, onScenarioChan
   onSchoolChange: (id: string) => void
   onRetryFilter: () => void
   onOverview: () => void
+  focusTopic?: string
 }) {
   const [calculating, setCalculating] = useState(false)
   const [downloading, setDownloading] = useState(false)
@@ -115,12 +117,14 @@ export default function Plan({ dataset, schoolId, plan, scenario, onScenarioChan
   return <section aria-label="Проект плана часов" aria-busy={calculating || changingSchool || transferring}>
     <div className="overview-toolbar"><div><h2>Перераспределение учебных часов</h2><p>Проект плана с основаниями каждого изменения</p></div><div className="overview-controls"><DatasetBadge dataset={dataset} /><label className="school-filter">Школа<select aria-label="Школа" value={schoolId} disabled={changingSchool || calculating || downloading || transferring} onChange={event => onSchoolChange(event.target.value)}><option value="">Все школы</option>{dataset.school_ids.map(id => <option key={id} value={id}>{id}</option>)}</select></label></div></div>
     {filterError && <div className="error-message" role="alert"><p>{filterError}</p><button className="secondary-button" disabled={changingSchool || calculating || downloading || transferring} onClick={onRetryFilter}>Повторить смену школы</button></div>}
+    {focusTopic && <p className="topic-focus-note">Вы разбираете тему <strong>{focusTopic}</strong>. После расчёта её строка выделена в сравнении планов. Бюджет относится ко всему учебному плану.</p>}
     <div className="plan-actions"><button className="primary-button" disabled={calculating || downloading || changingSchool || transferring} onClick={calculate}>{calculating ? 'Рассчитываем…' : currentPlan ? 'Пересчитать план' : 'Рассчитать план'}</button><button className="secondary-button" disabled={!currentPlan || calculating || downloading || changingSchool || transferring} onClick={download}>{downloading ? 'Скачиваем…' : 'Скачать CSV'}</button></div>
     {(calculating || changingSchool) && <p className="loading-message" role="status">{changingSchool ? 'Обновляем школу…' : 'Рассчитываем проект плана…'}</p>}
     {error && <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" onClick={calculate} disabled={calculating || downloading || transferring || changingSchool}>Повторить расчёт</button></div>}
     {downloadError && <div className="error-message" role="alert"><p>{downloadError}</p><button className="secondary-button" onClick={download} disabled={calculating || downloading || transferring || changingSchool}>Повторить скачивание</button></div>}
     {transferring && <p className="loading-message" role="status">Сохраняем вариант плана…</p>}
     {!changingSchool && currentPlan && <PlanScenario key={automaticPlan!.plan_id} plan={currentPlan} scenario={currentScenario} busy={calculating || downloading || transferring} error={transferError} onTransfer={transfer} onRestore={() => { onScenarioChange(null); setTransferError(null); setDownloadError(null) }} />}
+    {!changingSchool && automaticPlan && <PlanComparison automatic={automaticPlan} scenario={currentScenario?.plan ?? null} focusTopic={focusTopic} />}
     {!changingSchool && (currentPlan ? <PlanResult plan={currentPlan} /> : <section className="empty-state"><h2>{invalidated ? 'Школа изменилась — нужен новый расчёт' : 'План ещё не рассчитан'}</h2><p>Рассчитайте план для среза «{schoolId || 'Все школы'}». После расчёта появятся часы, основания переносов и CSV.</p></section>)}
   </section>
 }
