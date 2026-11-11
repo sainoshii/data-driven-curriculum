@@ -1,0 +1,118 @@
+.school-plan-comparison {
+  margin: 18px 0;
+  padding: 16px 20px;
+  border: 1px solid var(--ui-line, #dfe5ef);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.school-plan-comparison > summary {
+  width: fit-content;
+  padding: 4px 0;
+  color: var(--ui-blue, #29468d);
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.school-plan-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.school-plan-form .school-filter {
+  flex: 0 1 160px;
+  flex-direction: column;
+  align-items: start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.school-plan-form select {
+  width: 100%;
+  max-width: 100%;
+}
+
+.school-plan-form .secondary-button {
+  margin: 0;
+}
+
+.school-plan-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  align-items: start;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.school-plan-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--ui-line, #dfe5ef);
+  border-radius: 9px;
+  background: #f7f9fe;
+  overflow-wrap: anywhere;
+}
+
+.school-plan-card header h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.school-plan-card header p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ui-muted, #536176);
+}
+
+.school-plan-card header strong {
+  margin-left: 4px;
+  color: var(--ui-blue, #29468d);
+  font-variant-numeric: tabular-nums;
+}
+
+.school-plan-routes {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.school-plan-routes > li {
+  padding-top: 12px;
+  border-top: 1px solid var(--ui-line, #dfe5ef);
+}
+
+.school-plan-hours {
+  display: block;
+  color: var(--ui-blue, #29468d);
+  font-size: 13px;
+}
+
+.school-plan-routes dl {
+  display: grid;
+  gap: 10px;
+  margin: 9px 0 0;
+}
+
+.school-plan-routes dt,
+.school-plan-evidence {
+  color: var(--ui-muted, #536176);
+  font-size: 12px;
+}
+
+.school-plan-routes dd {
+  margin: 2px 0 0;
+  line-height: 1.45;
+}
+
+.school-plan-message,
+.school-plan-empty {
+  margin: 14px 0 0;
+  color: var(--ui-muted, #536176);
+  font-size: 13px;
+  line-height: 1.5;
+}
