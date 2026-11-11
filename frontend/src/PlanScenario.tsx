@@ -11,7 +11,7 @@ export function ScenarioChange({ scenario }: { scenario: ScenarioState }) {
   const change = scenario.change
   const names = new Map(scenario.plan.items.map(item => [item.topic_id, item.topic_name]))
   return <div className="table-scroll" role="region" aria-label="Часы до и после переноса" tabIndex={0}>
-    <table className="scenario-change"><caption>Последний перенос · {change.hours} ч · Общий бюджет {scenario.plan.proposed_total_hours} ч</caption>
+    <table className="scenario-change"><caption>Последний перенос методиста · {change.hours} ч · Общий бюджет {scenario.plan.proposed_total_hours} ч</caption>
       <thead><tr><th scope="col">Тема</th><th scope="col">До, ч</th><th scope="col">После, ч</th></tr></thead>
       <tbody><tr><th scope="row">{change.from_topic_id} · {names.get(change.from_topic_id)}</th><td>{change.fromBefore}</td><td>{change.fromAfter}</td></tr><tr><th scope="row">{change.to_topic_id} · {names.get(change.to_topic_id)}</th><td>{change.toBefore}</td><td>{change.toAfter}</td></tr></tbody>
     </table>

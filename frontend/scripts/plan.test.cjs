@@ -34,6 +34,19 @@ test('no_changes shows the API explanation and no transfers', () => {
   assert.match(html, /Переносов часов нет/)
 })
 
+test('automatic transfers show score evidence and the manual plan labels net changes', () => {
+  const automatic = renderToStaticMarkup(React.createElement(PlanResult, { plan: fixture }))
+  assert.match(automatic, /Почему этот перенос\?/)
+  assert.match(automatic, /3,1%<\/b> ниже 60 баллов · выборка 2\s000/)
+  assert.match(automatic, /75,5%<\/b> ниже 60 баллов · выборка 2\s000/)
+  assert.match(automatic, /Часы темы в плане · 5 → 7 ч/)
+
+  const manual = renderToStaticMarkup(React.createElement(PlanResult, { plan: fixture, isManual: true }))
+  assert.match(manual, /итоговую разницу между исходным планом и вашим вариантом/)
+  assert.match(manual, /2 ч →/)
+  assert.doesNotMatch(manual, /Почему этот перенос\?|Правила автоматического расчёта/)
+})
+
 test('a plan belongs only to its dataset and school slice', () => {
   assert.equal(planMatchesScope(fixture, 'demo', ''), true)
   assert.equal(planMatchesScope(fixture, 'demo', 'S01'), false)
