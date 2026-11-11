@@ -1,0 +1,60 @@
+.methodist-report-launcher { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.methodist-report-launcher [role=alert] { max-width: 360px; color: #8a3030; font-size: 12px; }
+body.report-document { margin: 0; background: #edf0f4; }
+.methodist-report-page { font: 14px/1.6 "Segoe UI", Arial, sans-serif; color: #202b3c; margin: 0 auto; padding: 24px; max-width: 1000px; }
+.report-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.report-toolbar button, .methodist-report-page > .report-warning button { font: inherit; background: #43589e; color: white; border: 0; border-radius: 6px; padding: 11px 16px; cursor: pointer; }
+.report-toolbar button:disabled { background: #8d97ae; cursor: default; }
+.report-toolbar p { font-size: 12px; color: #59677e; }
+.report-toolbar button:focus-visible { outline: 3px solid #7b8fcb; outline-offset: 3px; }
+.methodist-report { background: white; padding: 36px; box-shadow: 0 2px 12px #26334d12; }
+.methodist-report h1 { font-size: 29px; margin: 6px 0 22px; }
+.methodist-report h2 { font-size: 19px; margin: 28px 0 12px; border-bottom: 1px solid #cdd5e2; padding-bottom: 8px; }
+.methodist-report h3 { font-size: 15px; margin: 18px 0 10px; }
+.methodist-report p { margin: 10px 0; line-height: 1.65; }
+.report-kicker { color: #53678f; font-size: 10px; letter-spacing: 1.5px; }
+.report-metadata { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 0 0 18px; }
+.report-metadata dt { font-size: 11px; color: #657187; }
+.report-metadata dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+.report-metadata code { font-size: 11px; }
+.report-synthetic, .report-warning { padding: 12px 15px; border: 1px solid #b4bed1; background: #f4f6fb; }
+.report-warning { color: #7c342c; border-color: #d2aaa4; background: #fff5f2; }
+.methodist-report .report-note, .report-plan-id { font-size: 11px; color: #5a677a; overflow-wrap: anywhere; }
+.report-budgets { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #cdd5e2; }
+.report-budgets > div { padding: 14px; }
+.report-budgets dt { font-size: 12px; }
+.report-budgets dd { font-size: 24px; font-weight: 650; margin: 8px 0 0; }
+.report-budget-ok { font-weight: 600; }
+.methodist-report table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 14px 0; table-layout: fixed; }
+.methodist-report caption { text-align: left; font-weight: 600; margin: 12px 0 8px; }
+.methodist-report th, .methodist-report td { border: 1px solid #cdd5e2; padding: 8px; text-align: right; overflow-wrap: anywhere; vertical-align: top; }
+.methodist-report thead th { background: #f1f3f8; font-size: 11px; font-weight: 600; }
+.methodist-report th:first-child { text-align: left; width: 40%; }
+.methodist-report tbody th { font-weight: 500; }
+.methodist-report tfoot th, .methodist-report tfoot td { font-weight: 700; }
+.methodist-report ul { padding-left: 20px; }
+.report-reasons { margin: 14px 0; }
+.report-reasons > div { margin: 0 0 12px; }
+.report-reasons dt { font-weight: 600; }
+.report-reasons dd { margin: 4px 0; }
+.methodist-report footer { display: block; font-size: 11px; line-height: 1.6; color: #5a677a; margin-top: 24px; border-top: 1px solid #cdd5e2; padding-top: 14px; }
+@media (max-width: 700px) { .methodist-report-page { padding: 12px; } .methodist-report { padding: 18px; } .report-metadata { grid-template-columns: 1fr; } .methodist-report table { font-size: 10px; } .methodist-report th, .methodist-report td { padding: 5px; } .report-budgets dd { font-size: 18px; } }
+@page { size: A4; margin: 14mm 12mm; }
+@media print {
+  body.report-document { background: white; }
+  .report-toolbar { display: none !important; }
+  .methodist-report-page { padding: 0; margin: 0; max-width: none; font-size: 10pt; line-height: 1.45; }
+  .methodist-report { padding: 0; box-shadow: none; }
+  .methodist-report h1 { font-size: 22pt; }
+  .methodist-report h2 { font-size: 14pt; break-after: avoid; margin-top: 18pt; }
+  .methodist-report h3 { font-size: 11pt; break-after: avoid; }
+  .methodist-report table { font-size: 9pt; }
+  .methodist-report thead th { font-size: 8pt; background: white; }
+  .methodist-report th, .methodist-report td { padding: 5pt; }
+  .methodist-report thead { display: table-header-group; }
+  .methodist-report tfoot { display: table-row-group; }
+  .methodist-report tr, .report-budgets, .report-reasons > div, .report-metadata, .report-synthetic { break-inside: avoid; }
+  .methodist-report p { orphans: 3; widows: 3; }
+  .methodist-report .report-note, .methodist-report footer, .report-plan-id { font-size: 8pt; color: #333; }
+  .report-budgets dd { font-size: 18pt; }
+}
