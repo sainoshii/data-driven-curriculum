@@ -1,13 +1,39 @@
 import { DatasetBadge } from './DatasetControls'
 import { useEffect, useState } from 'react'
-import { curriculumApi, type Dataset, type TopicsData } from './data/curriculum'
+import { curriculumApi, type Dataset, type Scores, type TopicsData } from './data/curriculum'
+import './heatmap-drilldown.css'
 
 const number = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 })
 const value = (n: number | null | undefined) => n == null ? 'Нет данных' : number.format(n)
 const percent = (n: number | null | undefined) => n == null ? 'Нет данных' : `${value(n)}%`
 const heatLevel = (n: number | null | undefined) => n == null ? 'missing' : n < 25 ? 'low' : n < 50 ? 'medium' : n < 75 ? 'high' : 'highest'
 
-export default function Topics({ dataset, schoolId, changingSchool, filterError, onSchoolChange, onRetryFilter, onCompareTopic, onOverview }: {
+export function HeatmapCell({ school, topic, scores, busy, onInspect }: {
+  school: string
+  topic: TopicsData['topics'][number]
+  scores: Scores | undefined
+  busy: boolean
+  onInspect: (schoolId: string, topicId: string) => void
+}) {
+  const belowThreshold = scores?.below_threshold_pct
+  const description = `${school} · ${topic.topic_name} · Ниже порога: ${percent(belowThreshold)} · Средний балл: ${value(scores?.post_score_avg)} · Результатов: ${value(scores?.result_count)}`
+
+  if (belowThreshold == null) return <td className="heat-missing" title={description}>Нет данных</td>
+
+  return <td className={`heat-${heatLevel(belowThreshold)} heatmap-action-cell`} title={description}>
+    <button
+      type="button"
+      className="heatmap-cell-button"
+      aria-label={`Разобрать тему ${topic.topic_id} в школе ${school} · ${topic.topic_name} · ${percent(belowThreshold)} ниже порога`}
+      aria-disabled={busy || undefined}
+      onClick={() => { if (!busy) onInspect(school, topic.topic_id) }}
+    >
+      {percent(belowThreshold)}
+    </button>
+  </td>
+}
+
+export default function Topics({ dataset, schoolId, changingSchool, filterError, onSchoolChange, onRetryFilter, onCompareTopic, onInspectCell, onOverview }: {
   dataset: Dataset | null
   schoolId: string
   changingSchool: boolean
@@ -15,6 +41,7 @@ export default function Topics({ dataset, schoolId, changingSchool, filterError,
   onSchoolChange: (id: string) => void
   onRetryFilter: () => void
   onCompareTopic: (topicId: string) => void
+  onInspectCell: (schoolId: string, topicId: string) => void
   onOverview: () => void
 }) {
   const [data, setData] = useState<TopicsData | null>(null)
@@ -63,7 +90,7 @@ export default function Topics({ dataset, schoolId, changingSchool, filterError,
     {data && <>
       <section className="heatmap-section" aria-labelledby="heatmap-title">
         <div className="section-heading"><h2 id="heatmap-title">Школы × темы</h2><span>Сложные темы слева</span></div>
-        <p className="sample-note">Доля результатов с итоговым баллом строго ниже {value(data.mastery_threshold)}. Темнее — выше доля.</p>
+        <p className="sample-note">Доля результатов с итоговым баллом строго ниже {value(data.mastery_threshold)}. Темнее — выше доля. Нажмите на процент, чтобы разобрать тему в этой школе.</p>
         <div className="heat-legend" aria-label="Шкала тепловой карты">
           <span className="heat-low">0–&lt;25%</span><span className="heat-medium">25–&lt;50%</span><span className="heat-high">50–&lt;75%</span><span className="heat-highest">75–100%</span><span className="heat-missing">Нет данных</span>
         </div>
@@ -71,10 +98,16 @@ export default function Topics({ dataset, schoolId, changingSchool, filterError,
           <table className="heatmap-table">
             <caption>{schools.length} × {topics.length} (школы × темы) · {schools.length * topics.length} ячеек</caption>
             <thead><tr><th scope="col">Школа</th>{topics.map(topic => <th scope="col" key={topic.topic_id} title={topic.topic_name}>{topic.topic_id}<span className="sr-only"> — {topic.topic_name}</span></th>)}</tr></thead>
-            <tbody>{schools.map(school => <tr key={school}><th scope="row">{school}</th>{topics.map(topic => {
-              const scores = cells.get(JSON.stringify([school, topic.topic_id]))
-              return <td key={topic.topic_id} className={`heat-${heatLevel(scores?.below_threshold_pct)}`} title={`${school} · ${topic.topic_name} · Ниже порога: ${percent(scores?.below_threshold_pct)} · Средний балл: ${value(scores?.post_score_avg)} · Результатов: ${value(scores?.result_count)}`}>{percent(scores?.below_threshold_pct)}</td>
-            })}</tr>)}</tbody>
+            <tbody>{schools.map(school => <tr key={school}><th scope="row">{school}</th>{topics.map(topic =>
+              <HeatmapCell
+                key={topic.topic_id}
+                school={school}
+                topic={topic}
+                scores={cells.get(JSON.stringify([school, topic.topic_id]))}
+                busy={loading || changingSchool}
+                onInspect={onInspectCell}
+              />
+            )}</tr>)}</tbody>
           </table>
         </div>
         <p className="sample-note">Коды тем соответствуют таблице ниже. Наведите на код, чтобы увидеть название, на ячейку — показатели.</p>

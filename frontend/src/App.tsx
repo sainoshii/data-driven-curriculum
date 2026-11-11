@@ -33,7 +33,7 @@ function Icon({ name, className = '' }: { name: IconName; className?: string }) 
 export default function App() {
   const [active, setActive] = useState<Section>('overview')
   const [demo, setDemo] = useState<DemoState>({ dataset: null, overview: null, loading: false, error: null })
-  const [requestedSchool, setRequestedSchool] = useState('')
+  const [schoolRequest, setSchoolRequest] = useState<{ schoolId: string; topicId?: string }>({ schoolId: '' })
   const [selectedTopic, setSelectedTopic] = useState('')
   const [plan, setPlan] = useState<PlanData | null>(null)
   const [scenario, setScenario] = useState<ScenarioState | null>(null)
@@ -44,16 +44,16 @@ export default function App() {
   const [receipt, setReceipt] = useState<UploadReceiptData | null>(null)
   const [compared, setCompared] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
+  const navigationRevision = useRef(0)
 
   function compareTopic(topicId: string) {
     setSelectedTopic(topicId)
     setCompared(true)
-    setActive('textbooks')
-    mainRef.current?.focus({ preventScroll: true })
-    window.scrollTo(0, 0)
+    navigate('textbooks')
   }
 
   function navigate(section: Section) {
+    navigationRevision.current += 1
     setActive(section)
     mainRef.current?.focus({ preventScroll: true })
     window.scrollTo(0, 0)
@@ -77,7 +77,7 @@ export default function App() {
       setDemo({ dataset, overview, loading: false, error: null })
       setActive('overview')
       setActiveUpload(files)
-      setRequestedSchool('')
+      setSchoolRequest({ schoolId: '' })
       setSelectedTopic('')
       setPlan(null)
       setScenario(null)
@@ -95,9 +95,16 @@ export default function App() {
   const openDemo = () => replaceDataset('demo', () => curriculumApi.openDemoDataset())
   const uploadDataset = (results: File, topics: File) => replaceDataset('upload', () => curriculumApi.uploadDataset(results, topics), { results: results.name, topics: topics.name })
 
-  async function changeSchool(schoolId: string) {
-    if (!demo.dataset) return
-    setRequestedSchool(schoolId)
+  async function changeSchool(schoolId: string, topicId?: string) {
+    if (!demo.dataset || demo.loading) return
+    if (topicId && schoolId === demo.overview?.school_id) {
+      setDemo(previous => ({ ...previous, error: null }))
+      inspectTopic(topicId)
+      return
+    }
+
+    const startingNavigation = navigationRevision.current
+    setSchoolRequest({ schoolId, topicId })
     setDemo(previous => ({ ...previous, loading: true, error: null }))
     try {
       const overview = await curriculumApi.getOverview(demo.dataset.dataset_id, schoolId || undefined)
@@ -106,9 +113,14 @@ export default function App() {
       setScenario(null)
       setPlanInvalidated(true)
       setCompared(false)
+      if (topicId && startingNavigation === navigationRevision.current) inspectTopic(topicId)
     } catch (error) {
       setDemo(previous => ({ ...previous, loading: false, error: error instanceof Error ? error.message : 'Не удалось обновить показатели. Попробуйте ещё раз.' }))
     }
+  }
+
+  function retrySchool() {
+    changeSchool(schoolRequest.schoolId, active === 'topics' ? schoolRequest.topicId : undefined)
   }
 
   const current = sections.find(section => section.id === active) ?? { label: 'Разбор темы', icon: 'topics' }
@@ -132,7 +144,7 @@ export default function App() {
         {active === 'overview' && receipt?.datasetId === demo.dataset?.dataset_id && receipt && <UploadReceipt receipt={receipt} onStart={() => { setReceipt(null); requestAnimationFrame(() => { const target = document.getElementById('analysis-start'); target?.focus({ preventScroll: true }); target?.scrollIntoView({ block: 'start' }) }) }} />}
         {active === 'overview' && <Overview
           state={demo} onSchoolChange={changeSchool} onInspectTopic={inspectTopic} plan={currentAutoPlan}
-          onRetry={() => demo.dataset ? changeSchool(requestedSchool) : openDemo()}
+          onRetry={() => demo.dataset ? retrySchool() : openDemo()}
         />}
         <DatasetControls hidden={active !== 'overview'} opened={!!demo.dataset} activeUpload={activeUpload} busy={demo.loading} action={datasetAction} error={datasetError} onDemo={openDemo} onUpload={uploadDataset} />
         {active === 'overview' && (!demo.dataset || demo.dataset.is_demo) && <DemoGuide opened={!!demo.dataset} topicSelected={!!selectedTopic} compared={compared} planned={!!currentAutoPlan} busy={demo.loading} onDemo={openDemo} onTopic={() => firstTopic ? inspectTopic(firstTopic) : navigate('topics')} onCompare={() => selectedTopic || firstTopic ? compareTopic(selectedTopic || firstTopic!) : navigate('textbooks')} onPlan={() => navigate('hours')} />}
@@ -141,15 +153,15 @@ export default function App() {
           key={JSON.stringify([demo.dataset.dataset_id, demo.overview?.school_id, selectedTopic])}
           dataset={demo.dataset} topicId={selectedTopic} schoolId={demo.overview?.school_id ?? ''}
           changingSchool={demo.loading} filterError={demo.error} plan={currentAutoPlan}
-          onSchoolChange={changeSchool} onRetryFilter={() => changeSchool(requestedSchool)}
+          onSchoolChange={changeSchool} onRetryFilter={retrySchool}
           onCompare={() => compareTopic(selectedTopic)} onPlan={() => navigate('hours')} onOverview={() => navigate('overview')}
         />}
         {active === 'topics' && <Topics
           key={JSON.stringify([demo.dataset?.dataset_id, demo.overview?.school_id])}
           dataset={demo.dataset} schoolId={demo.overview?.school_id ?? ''}
           changingSchool={demo.loading} filterError={demo.error}
-          onSchoolChange={changeSchool} onRetryFilter={() => changeSchool(requestedSchool)}
-          onCompareTopic={compareTopic}
+          onSchoolChange={changeSchool} onRetryFilter={retrySchool}
+          onCompareTopic={compareTopic} onInspectCell={changeSchool}
           onOverview={() => setActive('overview')}
         />}
         {active === 'textbooks' && <Textbooks
@@ -158,7 +170,7 @@ export default function App() {
           topicId={selectedTopic} onTopicChange={setSelectedTopic}
           onPlan={() => navigate('hours')}
           changingSchool={demo.loading} filterError={demo.error}
-          onSchoolChange={changeSchool} onRetryFilter={() => changeSchool(requestedSchool)}
+          onSchoolChange={changeSchool} onRetryFilter={retrySchool}
           onOverview={() => setActive('overview')}
         />}
         {active === 'hours' && <Plan
@@ -168,7 +180,7 @@ export default function App() {
           focusTopic={selectedTopic}
           changingSchool={demo.loading} filterError={demo.error}
           onCalculated={result => { setPlan(result); setScenario(null); setPlanInvalidated(false) }}
-          onSchoolChange={changeSchool} onRetryFilter={() => changeSchool(requestedSchool)}
+          onSchoolChange={changeSchool} onRetryFilter={retrySchool}
           onOverview={() => setActive('overview')}
         />}
         <footer>Data-Driven Curriculum <span>Инструмент поддержки решений методиста</span></footer>

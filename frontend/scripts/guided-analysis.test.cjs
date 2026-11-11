@@ -4,12 +4,13 @@ const fs = require('node:fs')
 const path = require('node:path')
 const React = require('react')
 const { renderToStaticMarkup } = require('react-dom/server')
-let server, AnalysisSummary, UploadReceipt, DemoGuide, PlanComparison, comparisonRows
+let server, AnalysisSummary, UploadReceipt, DemoGuide, PlanComparison, comparisonRows, HeatmapCell
 before(async () => {
   const { createServer } = await import('vite')
   server = await createServer({ root: path.join(__dirname, '..'), server: { middlewareMode: true }, appType: 'custom' })
   ;({ AnalysisSummary, UploadReceipt, DemoGuide } = await server.ssrLoadModule('/src/GuidedAnalysis.tsx'))
   ;({ default: PlanComparison, comparisonRows } = await server.ssrLoadModule('/src/PlanComparison.tsx'))
+  ;({ HeatmapCell } = await server.ssrLoadModule('/src/Topics.tsx'))
 })
 after(async () => { await server?.close() })
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, '../../contracts/examples/demo-plan.json'), 'utf8'))
@@ -55,4 +56,14 @@ test('upload confirmation shows full dataset counts and an analysis action', () 
 test('demo guide includes the four concrete actions', () => {
   const html = render(DemoGuide, { opened: false, topicSelected: false, compared: false, planned: false, busy: false })
   for (const text of ['Начать демо', 'Разобрать первую тему', 'Перейти к сравнению', 'Перейти к плану']) assert.ok(html.includes(text))
+})
+
+test('heatmap cells distinguish a clickable zero from missing results', () => {
+  const props = { school: 'S01', topic, busy: false, onInspect() {} }
+  const zero = render(HeatmapCell, { ...props, scores: { ...topic.scores, below_threshold_pct: 0 } })
+  assert.match(zero, /<button[^>]+Разобрать тему T08 в школе S01[^>]+>0%<\/button>/)
+
+  const missing = render(HeatmapCell, { ...props, scores: { result_count: 0, post_score_avg: null, below_threshold_pct: null } })
+  assert.match(missing, />Нет данных<\/td>/)
+  assert.doesNotMatch(missing, /<button/)
 })
