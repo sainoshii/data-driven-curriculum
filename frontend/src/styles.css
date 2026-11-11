@@ -17,6 +17,7 @@
 .school-filter { display: flex; gap: 10px; align-items: center; font-size: 13px; color: #536176; }
 .school-filter select { font: inherit; color: #27374c; background: white; border: 1px solid #cdd5e3; border-radius: 7px; padding: 10px 32px 10px 12px; min-height: 42px; }
 .school-filter select:focus-visible { outline: 3px solid #697be4; outline-offset: 3px; }
+.workspace-back { margin-bottom: 14px; }
 .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .metric { border: 1px solid #e0e5ed; background: white; border-radius: 10px; padding: 24px; }
 .metric h3 { color: #607087; font-size: 13px; font-weight: 500; }

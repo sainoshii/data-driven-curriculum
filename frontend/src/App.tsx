@@ -6,7 +6,7 @@ import TopicDetail, { DemoGuide, UploadReceipt, type UploadReceiptData } from '.
 import type { ScenarioState } from './PlanScenario'
 import Textbooks from './Textbooks'
 import DatasetControls, { type UploadFileNames } from './DatasetControls'
-import { curriculumApi, type Dataset, type PlanData } from './data/curriculum'
+import { curriculumApi, type Dataset, type OverviewData, type PlanData } from './data/curriculum'
 
 const sections = [
   { id: 'overview', label: 'Обзор', icon: 'overview' },
@@ -17,6 +17,13 @@ const sections = [
 
 type Section = typeof sections[number]['id'] | 'topic-detail'
 type IconName = typeof sections[number]['icon'] | 'arrow' | 'data'
+
+type WorkspaceEntry = {
+  section: Section
+  topicId: string
+  overview: OverviewData | null
+  canGoBack: boolean
+}
 
 function Icon({ name, className = '' }: { name: IconName; className?: string }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -43,25 +50,61 @@ export default function App() {
   const [activeUpload, setActiveUpload] = useState<UploadFileNames | null>(null)
   const [receipt, setReceipt] = useState<UploadReceiptData | null>(null)
   const [compared, setCompared] = useState(false)
+  const [canGoBack, setCanGoBack] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
   const navigationRevision = useRef(0)
+  const schoolRequestRevision = useRef(0)
+  const historyId = useRef<string | null>(null)
+  const workspaceHistory = useRef(new Map<string, WorkspaceEntry>())
+
+  useEffect(() => {
+    if (!historyId.current) {
+      historyId.current = crypto.randomUUID()
+      window.history.replaceState({ workspaceId: historyId.current }, '')
+    }
+    workspaceHistory.current.set(historyId.current, { section: active, topicId: selectedTopic, overview: demo.overview, canGoBack })
+
+    function restoreView(event: PopStateEvent) {
+      const id = event.state?.workspaceId
+      const entry = typeof id === 'string' ? workspaceHistory.current.get(id) : undefined
+      historyId.current = entry ? id : null
+      navigationRevision.current += 1
+      schoolRequestRevision.current += 1
+      setCanGoBack(entry?.canGoBack ?? false)
+      setActive(entry?.section ?? 'overview')
+      setSelectedTopic(entry?.topicId ?? '')
+      setDemo(previous => ({
+        ...previous,
+        overview: entry?.overview ?? previous.overview,
+        loading: datasetAction !== null && previous.loading,
+        error: null,
+      }))
+      mainRef.current?.focus({ preventScroll: true })
+    }
+
+    window.addEventListener('popstate', restoreView)
+    return () => window.removeEventListener('popstate', restoreView)
+  }, [active, selectedTopic, demo.overview, datasetAction, canGoBack])
 
   function compareTopic(topicId: string) {
-    setSelectedTopic(topicId)
     setCompared(true)
-    navigate('textbooks')
+    navigate('textbooks', topicId)
   }
 
-  function navigate(section: Section) {
+  function navigate(section: Section, topicId = selectedTopic) {
+    if (section === active && topicId === selectedTopic) return
     navigationRevision.current += 1
+    historyId.current = crypto.randomUUID()
+    window.history.pushState({ workspaceId: historyId.current }, '')
+    setCanGoBack(true)
     setActive(section)
+    setSelectedTopic(topicId)
     mainRef.current?.focus({ preventScroll: true })
     window.scrollTo(0, 0)
   }
 
   function inspectTopic(topicId: string) {
-    setSelectedTopic(topicId)
-    navigate('topic-detail')
+    navigate('topic-detail', topicId)
   }
 
   async function replaceDataset(action: 'demo' | 'upload', load: () => Promise<Dataset>, files: UploadFileNames | null = null) {
@@ -74,6 +117,9 @@ export default function App() {
         curriculumApi.getOverview(dataset.dataset_id),
         action === 'upload' ? curriculumApi.getTopics(dataset.dataset_id) : Promise.resolve(null),
       ])
+      workspaceHistory.current.clear()
+      historyId.current = null
+      setCanGoBack(false)
       setDemo({ dataset, overview, loading: false, error: null })
       setActive('overview')
       setActiveUpload(files)
@@ -104,10 +150,12 @@ export default function App() {
     }
 
     const startingNavigation = navigationRevision.current
+    const requestRevision = ++schoolRequestRevision.current
     setSchoolRequest({ schoolId, topicId })
     setDemo(previous => ({ ...previous, loading: true, error: null }))
     try {
       const overview = await curriculumApi.getOverview(demo.dataset.dataset_id, schoolId || undefined)
+      if (requestRevision !== schoolRequestRevision.current) return
       setDemo(previous => ({ ...previous, overview, loading: false, error: null }))
       setPlan(null)
       setScenario(null)
@@ -115,6 +163,7 @@ export default function App() {
       setCompared(false)
       if (topicId && startingNavigation === navigationRevision.current) inspectTopic(topicId)
     } catch (error) {
+      if (requestRevision !== schoolRequestRevision.current) return
       setDemo(previous => ({ ...previous, loading: false, error: error instanceof Error ? error.message : 'Не удалось обновить показатели. Попробуйте ещё раз.' }))
     }
   }
@@ -139,6 +188,7 @@ export default function App() {
     <div className="workspace">
       <header className="topbar"><span>Рабочее пространство</span><div className="dataset-status"><span />{demo.dataset ? 'Данные загружены' : 'Данные не загружены'}</div></header>
       <main ref={mainRef} id="main" tabIndex={-1}>
+        {canGoBack && <button type="button" className="text-button workspace-back" onClick={() => window.history.back()}>← Назад</button>}
         <div className="page-heading"><div><div className="breadcrumb">Панель методиста <span>/</span> {current.label}</div><h1>{current.label}</h1></div><span className="subject-tag">Математика · 7 класс</span></div>
         <div className={`overview-layout ${demo.overview ? 'has-results' : ''}`}>
         {active === 'overview' && receipt?.datasetId === demo.dataset?.dataset_id && receipt && <UploadReceipt receipt={receipt} onStart={() => { setReceipt(null); requestAnimationFrame(() => { const target = document.getElementById('analysis-start'); target?.focus({ preventScroll: true }); target?.scrollIntoView({ block: 'start' }) }) }} />}
@@ -162,7 +212,7 @@ export default function App() {
           changingSchool={demo.loading} filterError={demo.error}
           onSchoolChange={changeSchool} onRetryFilter={retrySchool}
           onCompareTopic={compareTopic} onInspectCell={changeSchool}
-          onOverview={() => setActive('overview')}
+          onOverview={() => navigate('overview')}
         />}
         {active === 'textbooks' && <Textbooks
           key={demo.dataset?.dataset_id}
@@ -171,7 +221,7 @@ export default function App() {
           onPlan={() => navigate('hours')}
           changingSchool={demo.loading} filterError={demo.error}
           onSchoolChange={changeSchool} onRetryFilter={retrySchool}
-          onOverview={() => setActive('overview')}
+          onOverview={() => navigate('overview')}
         />}
         {active === 'hours' && <Plan
           key={JSON.stringify([demo.dataset?.dataset_id, demo.overview?.school_id])}
@@ -181,7 +231,7 @@ export default function App() {
           changingSchool={demo.loading} filterError={demo.error}
           onCalculated={result => { setPlan(result); setScenario(null); setPlanInvalidated(false) }}
           onSchoolChange={changeSchool} onRetryFilter={retrySchool}
-          onOverview={() => setActive('overview')}
+          onOverview={() => navigate('overview')}
         />}
         <footer>Data-Driven Curriculum <span>Инструмент поддержки решений методиста</span></footer>
       </main>
