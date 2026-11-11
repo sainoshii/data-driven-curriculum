@@ -5,16 +5,35 @@ const path = require('node:path')
 const React = require('react')
 const { renderToStaticMarkup } = require('react-dom/server')
 
-let server, PlanResult, planMatchesScope, curriculumApi, summarizeSchools
+let server, Plan, PlanResult, PlanOutcome, planMatchesScope, curriculumApi, summarizeSchools
 before(async () => {
   const { createServer } = await import('vite')
   server = await createServer({ root: path.join(__dirname, '..'), server: { middlewareMode: true }, appType: 'custom' })
-  ;({ PlanResult, planMatchesScope } = await server.ssrLoadModule('/src/Plan.tsx'))
+  ;({ default: Plan, PlanResult, planMatchesScope } = await server.ssrLoadModule('/src/Plan.tsx'))
+  ;({ default: PlanOutcome } = await server.ssrLoadModule('/src/PlanOutcome.tsx'))
   ;({ curriculumApi } = await server.ssrLoadModule('/src/data/curriculum.ts'))
   ;({ summarizeSchools } = await server.ssrLoadModule('/src/PlanSchoolContext.tsx'))
 })
 after(async () => { await server?.close() })
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, '../../contracts/examples/demo-plan.json'), 'utf8'))
+
+test('ready plan puts budget, report and key transfer before the scenario form and detail tables', () => {
+  const html = renderToStaticMarkup(React.createElement(Plan, { dataset: { dataset_id: 'demo', is_demo: true, school_ids: ['S01'] }, schoolId: '', plan: fixture, scenario: null, onScenarioChange() {}, invalidated: false, changingSchool: false, filterError: null, onCalculated() {}, onSchoolChange() {}, onRetryFilter() {}, onOverview() {} }))
+  assert.ok(html.indexOf('Общий бюджет до') < html.indexOf('Что если?'))
+  assert.ok(html.indexOf('Отчёт для методиста') < html.indexOf('Что если?'))
+  assert.ok(html.indexOf('Ключевой перенос') < html.indexOf('Что если?'))
+  assert.equal((html.match(/id="key-transfer-title"/g) || []).length, 1)
+  assert.equal((html.match(/Отчёт для методиста<\/button>/g) || []).length, 1)
+})
+
+test('no_changes outcome uses the server explanation and unchanged budget without an invented transfer', () => {
+  const plan = { ...fixture, status: 'no_changes', explanation: 'Нет допустимого резерва часов.', transfers: [] }
+  const html = renderToStaticMarkup(React.createElement(PlanOutcome, { plan, scenario: null }, null))
+  assert.match(html, /Часы остаются без изменений/)
+  assert.ok(html.includes(plan.explanation))
+  assert.doesNotMatch(html, /Тема-источник/)
+  assert.match(html, /119/)
+})
 
 test('shows saved budget, reasons and transfer endpoints from the contract', () => {
   const html = renderToStaticMarkup(React.createElement(PlanResult, { plan: fixture }))

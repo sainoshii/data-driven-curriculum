@@ -128,13 +128,15 @@ export default function App() {
       <header className="topbar"><span>Рабочее пространство</span><div className="dataset-status"><span />{demo.dataset ? 'Данные загружены' : 'Данные не загружены'}</div></header>
       <main ref={mainRef} id="main" tabIndex={-1}>
         <div className="page-heading"><div><div className="breadcrumb">Панель методиста <span>/</span> {current.label}</div><h1>{current.label}</h1></div><span className="subject-tag">Математика · 7 класс</span></div>
-        <DatasetControls hidden={active !== 'overview'} activeUpload={activeUpload} busy={demo.loading} action={datasetAction} error={datasetError} onDemo={openDemo} onUpload={uploadDataset} />
-        {active === 'overview' && (!demo.dataset || demo.dataset.is_demo) && <DemoGuide opened={!!demo.dataset} topicSelected={!!selectedTopic} compared={compared} planned={!!currentAutoPlan} busy={demo.loading} onDemo={openDemo} onTopic={() => firstTopic ? inspectTopic(firstTopic) : navigate('topics')} onCompare={() => selectedTopic || firstTopic ? compareTopic(selectedTopic || firstTopic!) : navigate('textbooks')} onPlan={() => navigate('hours')} />}
+        <div className={`overview-layout ${demo.overview ? 'has-results' : ''}`}>
         {active === 'overview' && receipt?.datasetId === demo.dataset?.dataset_id && receipt && <UploadReceipt receipt={receipt} onStart={() => { setReceipt(null); requestAnimationFrame(() => { const target = document.getElementById('analysis-start'); target?.focus({ preventScroll: true }); target?.scrollIntoView({ block: 'start' }) }) }} />}
         {active === 'overview' && <Overview
           state={demo} onSchoolChange={changeSchool} onInspectTopic={inspectTopic} plan={currentAutoPlan}
           onRetry={() => demo.dataset ? changeSchool(requestedSchool) : openDemo()}
         />}
+        <DatasetControls hidden={active !== 'overview'} opened={!!demo.dataset} activeUpload={activeUpload} busy={demo.loading} action={datasetAction} error={datasetError} onDemo={openDemo} onUpload={uploadDataset} />
+        {active === 'overview' && (!demo.dataset || demo.dataset.is_demo) && <DemoGuide opened={!!demo.dataset} topicSelected={!!selectedTopic} compared={compared} planned={!!currentAutoPlan} busy={demo.loading} onDemo={openDemo} onTopic={() => firstTopic ? inspectTopic(firstTopic) : navigate('topics')} onCompare={() => selectedTopic || firstTopic ? compareTopic(selectedTopic || firstTopic!) : navigate('textbooks')} onPlan={() => navigate('hours')} />}
+        </div>
         {active === 'topic-detail' && demo.dataset && <TopicDetail
           key={JSON.stringify([demo.dataset.dataset_id, demo.overview?.school_id, selectedTopic])}
           dataset={demo.dataset} topicId={selectedTopic} schoolId={demo.overview?.school_id ?? ''}

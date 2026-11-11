@@ -1,6 +1,5 @@
 import type { Dataset, OverviewData, PlanData } from './data/curriculum'
 import { DatasetBadge } from './DatasetControls'
-import { AnalysisSummary } from './GuidedAnalysis'
 
 export interface DemoState {
   dataset: Dataset | null
@@ -29,45 +28,42 @@ export default function Overview({ state, onSchoolChange, onRetry, onInspectTopi
     .slice(0, 3) ?? []
 
   return <>
-    {!overview && <section className="welcome" aria-labelledby="welcome-title">
-      <div className="welcome-copy">
-        <span className="eyebrow">ОТ ДАННЫХ К УЧЕБНОМУ ПЛАНУ</span>
-        <h2 id="welcome-title">Больше ясности.<br />Обоснованнее решения.</h2>
-        <p>Находите сложные темы, сравнивайте результаты групп с разными учебниками и готовьте проект перераспределения учебных часов.</p>
-      </div>
-      <div className="welcome-art" aria-hidden="true"><div className="art-grid" /><div className="art-bars"><i /><i /><i /><i /><i /></div><div className="art-label"><span /> Анализ → решение</div></div>
-    </section>}
-
     {error && <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" disabled={loading} onClick={onRetry}>Повторить</button></div>}
     <div role="status" className="loading-message">{loading ? 'Загружаем показатели…' : ''}</div>
 
     {dataset && overview ? <section id="analysis-start" tabIndex={-1} className="overview-results" aria-label="Показатели обзора" aria-busy={loading}>
       <div className="overview-toolbar">
-        <div><h2>Результаты обучения</h2><p>Показатели выбранной группы школ</p></div>
+        <div><h2>Результаты обучения</h2><p>{overview.school_id ? `Школа ${overview.school_id}` : 'Все школы'} · текущий срез</p></div>
         <div className="overview-controls">
           <DatasetBadge dataset={dataset} />
           <label className="school-filter">Школа
-            <select value={overview.school_id ?? ''} onChange={event => onSchoolChange(event.target.value)} disabled={loading}>
+            <select aria-label="Школа" value={overview.school_id ?? ''} onChange={event => onSchoolChange(event.target.value)} disabled={loading}>
               <option value="">Все школы</option>
               {dataset.school_ids.map(id => <option key={id} value={id}>{id}</option>)}
             </select>
           </label>
         </div>
       </div>
+      {topics[0] && <section className="overview-insight" aria-labelledby="insight-title">
+        <div className="insight-copy"><span className="eyebrow">В ФОКУСЕ · {topics[0].topic_id}</span><h2 id="insight-title">{topics[0].topic_name}</h2><p>Самая высокая доля результатов ниже порога в выбранном срезе.</p>
+          <button className="primary-button" disabled={loading} aria-label={`Разобрать тему «${topics[0].topic_name}»`} onClick={() => onInspectTopic(topics[0].topic_id)}>Разобрать тему<span aria-hidden="true">→</span></button>
+          {plan && <p className="insight-plan">План рассчитан · {plan.current_total_hours} → {plan.proposed_total_hours} ч</p>}
+        </div><div className="insight-stat"><strong>{percent(topics[0].scores.below_threshold_pct)}</strong><span>результатов ниже {score(overview.mastery_threshold)} баллов</span><small>{integer.format(topics[0].scores.result_count)} результатов · средний балл {score(topics[0].scores.post_score_avg)}</small></div>
+      </section>}
       <div className="metrics-grid">
         <article className="metric"><h3>Количество учеников</h3><strong>{integer.format(overview.student_count)}</strong><p>Уникальные ученики в выбранном срезе</p></article>
         <article className="metric"><h3>Средний итоговый балл</h3><strong>{score(overview.scores.post_score_avg)}</strong><p>Из 100 · по парам ученик–тема</p></article>
         <article className="metric"><h3>Результаты ниже порога</h3><strong>{percent(overview.scores.below_threshold_pct)}</strong><p>Итоговый балл строго ниже {score(overview.mastery_threshold)}</p></article>
       </div>
       <p className="sample-note">В срезе: {integer.format(overview.scores.result_count)} результатов (пар ученик–тема).</p>
-      {!loading && topics[0] && <AnalysisSummary topic={topics[0]} threshold={overview.mastery_threshold} plan={plan} />}
 
       <section className="hardest-topics" aria-labelledby="hardest-title">
         <div className="section-heading"><h2 id="hardest-title">Три самые сложные темы</h2><span>По доле результатов ниже порога</span></div>
-        {topics.length ? <ol className="topic-list">{topics.map((topic, index) => <li key={topic.topic_id}>
+        {topics.length ? <ol className="topic-list">{topics.map((topic, index) => <li key={topic.topic_id}><button className="topic-card" disabled={loading} aria-label={`Разобрать тему «${topic.topic_name}»`} onClick={() => onInspectTopic(topic.topic_id)}>
           <span className="topic-rank" aria-hidden="true">0{index + 1}</span>
-          <div className="topic-description"><h3>{topic.topic_name}</h3><p>{topic.topic_id} · Средний балл: {score(topic.scores.post_score_avg)} · Результатов: {integer.format(topic.scores.result_count)}</p><button className="text-button" disabled={loading} aria-label={`Разобрать тему «${topic.topic_name}»`} onClick={() => onInspectTopic(topic.topic_id)}>Разобрать тему →</button></div>
-          <div className="topic-percent"><strong>{percent(topic.scores.below_threshold_pct)}</strong><span>ниже {score(overview.mastery_threshold)} баллов</span></div>
+          <span className="topic-description"><span className="topic-name">{topic.topic_name}</span><span className="topic-caption">{topic.topic_id} · Средний балл: {score(topic.scores.post_score_avg)} · Результатов: {integer.format(topic.scores.result_count)}</span></span>
+          <span className="topic-percent"><strong>{percent(topic.scores.below_threshold_pct)}</strong><span>ниже {score(overview.mastery_threshold)} баллов</span></span><span className="card-arrow" aria-hidden="true">↗</span>
+        </button>
         </li>)}</ol> : <p className="empty-state">Нет результатов для определения сложных тем.</p>}
       </section>
       {dataset.is_demo && <div className="context-note"><span className="info-mark">i</span><p>Синтетические данные для демонстрации. Они не описывают реальные результаты школьников.</p></div>}

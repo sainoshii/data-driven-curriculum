@@ -1,5 +1,4 @@
 import type { PlanData } from './data/curriculum'
-import './plan-transfers.css'
 
 type PlanItem = PlanData['items'][number]
 
@@ -19,17 +18,28 @@ function TransferEvidence({ item, threshold, label }: {
       </>}
     </dd>
     <dd>Часы темы в плане · {item.current_hours} → {item.proposed_hours} ч</dd>
+    <dd className="transfer-reason">{item.reason}</dd>
   </div>
 }
 
-export default function PlanTransfers({ plan, isManual }: { plan: PlanData; isManual: boolean }) {
+export default function PlanTransfers({ plan, isManual, featured = false }: { plan: PlanData; isManual: boolean; featured?: boolean }) {
   const items = new Map(plan.items.map(item => [item.topic_id, item]))
+  const titleId = featured ? 'key-transfer-title' : 'transfers-title'
+  function renderTransfer(transfer: PlanData['transfers'][number]) {
+    const { from_topic_id: fromId, to_topic_id: toId, hours } = transfer
+    const from = items.get(fromId)
+    const to = items.get(toId)
+    const route = <><span className="transfer-topic"><small>Тема-источник</small><span className="topic-code">{fromId}</span>{from?.topic_name ?? fromId}</span><strong>{number.format(hours)} ч →</strong><span className="transfer-topic"><small>Тема-получатель</small><span className="topic-code">{toId}</span>{to?.topic_name ?? toId}</span></>
+    return <li key={`${fromId}:${toId}`}>
+      {!isManual && from && to ? <details className="transfer-evidence"><summary className="transfer-route">{route}<span className="transfer-why">Почему этот перенос?<span aria-hidden="true">+</span></span></summary><dl><TransferEvidence item={from} threshold={plan.mastery_threshold} label="Резерв часов" /><TransferEvidence item={to} threshold={plan.mastery_threshold} label="Сложная тема" /></dl></details> : <div className="transfer-route">{route}</div>}
+    </li>
+  }
 
-  return <section className="plan-section" aria-labelledby="transfers-title">
-    <h2 id="transfers-title">Откуда и куда переносятся часы</h2>
-    {isManual ? (
-      <p className="transfer-note">Переносы показывают итоговую разницу между исходным планом и вашим вариантом. Последнюю правку методиста можно посмотреть в блоке «Что если?».</p>
-    ) : (
+  return <section className={`plan-section ${featured ? 'featured-transfer' : ''}`} aria-labelledby={titleId}>
+    <h2 id={titleId}>{featured ? plan.transfers.length ? 'Ключевой перенос' : 'Переносы не требуются' : 'Откуда и куда переносятся часы'}</h2>
+    {isManual && <p className="transfer-note">Переносы показывают итоговую разницу между исходным планом и вашим вариантом. Последняя правка отмечена отдельно в сравнении планов.</p>}
+    {plan.transfers.length > 0 ? <><ul className="transfer-list">{(featured ? plan.transfers.slice(0, 1) : plan.transfers).map(renderTransfer)}</ul>{featured && plan.transfers.length > 1 && <details className="other-transfers"><summary>Остальные переносы · {plan.transfers.length - 1}</summary><ul className="transfer-list">{plan.transfers.slice(1).map(renderTransfer)}</ul></details>}</> : <p className="sample-note">Переносов часов нет.</p>}
+    {!isManual && (
       <details className="transfer-rules">
         <summary>Правила автоматического расчёта</summary>
         <p>
@@ -39,29 +49,5 @@ export default function PlanTransfers({ plan, isManual }: { plan: PlanData; isMa
         </p>
       </details>
     )}
-    {plan.transfers.length > 0 ? (
-      <ul className="transfer-list">
-        {plan.transfers.map(transfer => {
-          const { from_topic_id: fromId, to_topic_id: toId, hours } = transfer
-          const from = items.get(fromId)
-          const to = items.get(toId)
-
-          return <li key={`${fromId}:${toId}`}>
-            <div><span className="topic-code">{fromId}</span>{from?.topic_name ?? fromId}</div>
-            <strong>{number.format(hours)} ч →</strong>
-            <div><span className="topic-code">{toId}</span>{to?.topic_name ?? toId}</div>
-            {!isManual && from && to && (
-              <details className="transfer-evidence">
-                <summary>Почему этот перенос?</summary>
-                <dl>
-                  <TransferEvidence item={from} threshold={plan.mastery_threshold} label="Резерв часов" />
-                  <TransferEvidence item={to} threshold={plan.mastery_threshold} label="Сложная тема" />
-                </dl>
-              </details>
-            )}
-          </li>
-        })}
-      </ul>
-    ) : <p className="sample-note">Переносов часов нет.</p>}
   </section>
 }
