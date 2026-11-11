@@ -27,6 +27,7 @@ export interface CurriculumApi {
   getTextbookComparison(datasetId: string, topicId: string, schoolId?: string): Promise<TextbookComparisonData>
   createPlan(datasetId: string, schoolId?: string): Promise<PlanData>
   transferPlanHours(datasetId: string, planId: string, transfer: TransferRequest): Promise<PlanData>
+  createPlanDraft(datasetId: string, planId: string): Promise<PlanDraft>
   exportPlan(datasetId: string, planId: string): Promise<Blob>
 }
 
@@ -48,6 +49,11 @@ export class ApiError extends Error {
     super(message)
     this.name = 'ApiError'
   }
+}
+
+export interface PlanDraft {
+  text: string
+  source: 'openai' | 'template'
 }
 
 export interface PlanData {
@@ -164,6 +170,9 @@ export const curriculumApi: CurriculumApi = {
   },
   transferPlanHours(datasetId, planId, transfer) {
     return request<PlanData>(`/api/datasets/${encodeURIComponent(datasetId)}/plans/${encodeURIComponent(planId)}/transfers`, 'POST', transfer)
+  },
+  createPlanDraft(datasetId, planId) {
+    return request<PlanDraft>(`/api/datasets/${encodeURIComponent(datasetId)}/plans/${encodeURIComponent(planId)}/explanation-draft`, 'POST')
   },
   async exportPlan(datasetId, planId) {
     const response = await requestResponse(`/api/datasets/${encodeURIComponent(datasetId)}/plans/${encodeURIComponent(planId)}/export`)

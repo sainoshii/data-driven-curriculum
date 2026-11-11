@@ -5,6 +5,7 @@ import PlanSchoolContext from './PlanSchoolContext'
 import PlanComparison from './PlanComparison'
 import PlanTransfers from './PlanTransfers'
 import PlanOutcome from './PlanOutcome'
+import PlanExplanationDraft from './PlanExplanationDraft'
 import SchoolPlanComparison from './SchoolPlanComparison'
 import { useEffect, useRef, useState } from 'react'
 import { curriculumApi, type Dataset, type PlanData, type TransferRequest } from './data/curriculum'
@@ -133,6 +134,7 @@ export default function Plan({ dataset, schoolId, plan, scenario, onScenarioChan
     {error && <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" onClick={calculate} disabled={calculating || downloading || transferring || changingSchool}>Повторить расчёт</button></div>}
     {downloadError && <div className="error-message" role="alert"><p>{downloadError}</p><button className="secondary-button" onClick={download} disabled={calculating || downloading || transferring || changingSchool}>Повторить скачивание</button></div>}
     {transferring && <p className="loading-message" role="status">Сохраняем вариант плана…</p>}
+    {!changingSchool && currentPlan && <PlanExplanationDraft key={`draft-${currentPlan.plan_id}`} plan={currentPlan} disabled={calculating || downloading || transferring} />}
     {dataset.school_ids.length > 1 && <SchoolPlanComparison key={dataset.dataset_id} dataset={dataset} />}
     {!changingSchool && currentPlan && <PlanScenario key={automaticPlan!.plan_id} plan={currentPlan} scenario={currentScenario} showChange={false} busy={calculating || downloading || transferring} error={transferError} onTransfer={transfer} onRestore={() => { onScenarioChange(null); setTransferError(null); setDownloadError(null) }} />}
     {!changingSchool && automaticPlan && <PlanComparison automatic={automaticPlan} scenario={currentScenario?.plan ?? null} lastChange={currentScenario?.change} focusTopic={focusTopic} />}

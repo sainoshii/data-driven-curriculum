@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from backend.datasets import Dataset, DatasetData, DatasetStore, InvalidCSV, make_dataset, validate_results, validate_topics
 from backend.metrics import MASTERY_THRESHOLD, Scores, summarize
+from backend.plan_draft import PlanDraft, build_plan_draft
 from backend.plans import (
     InvalidTransfer,
     Plan,
@@ -327,6 +328,19 @@ def transfer_plan_hours(request: Request, dataset: ResolvedDataset, plan_id: str
         raise ApiFailure(422, ApiError(code="invalid_request", message=str(exc), details=[])) from exc
     store.save(plan)
     return plan
+
+
+@app.post(
+    "/api/datasets/{dataset_id}/plans/{plan_id}/explanation-draft",
+    operation_id="createPlanDraft",
+    response_model=PlanDraft,
+    responses={404: {"model": ApiError}},
+)
+def create_plan_draft(request: Request, dataset: ResolvedDataset, plan_id: str) -> PlanDraft:
+    plan = request.app.state.plans.load(dataset.metadata.dataset_id, plan_id)
+    if plan is None:
+        raise ApiFailure(404, ApiError(code="plan_not_found", message="План не найден.", details=[]))
+    return build_plan_draft(plan, is_demo=dataset.metadata.is_demo)
 
 
 @app.get(
