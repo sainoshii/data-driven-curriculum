@@ -1,4 +1,5 @@
 import { DatasetBadge } from './DatasetControls'
+import TextbookComparisonChart from './TextbookComparisonChart'
 import { useEffect, useState } from 'react'
 import { curriculumApi, type Dataset, type TopicScores, type TextbookComparisonData } from './data/curriculum'
 
@@ -48,7 +49,10 @@ function Comparison({ datasetId, topicId, schoolId }: { datasetId: string; topic
 
   if (error) return <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setAttempt(n => n + 1)}>Повторить сравнение</button></div>
   if (!data) return <p className="loading-message" role="status">Загружаем сравнение учебников…</p>
-  return <ComparisonTables data={data} />
+  return <>
+    <TextbookComparisonChart comparisons={data.comparisons} />
+    <ComparisonTables data={data} />
+  </>
 }
 
 export default function Textbooks({ dataset, schoolId, topicId, changingSchool, filterError, onTopicChange, onSchoolChange, onRetryFilter, onOverview, onPlan }: {
