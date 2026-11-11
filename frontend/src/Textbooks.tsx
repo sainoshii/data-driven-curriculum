@@ -50,8 +50,10 @@ function Comparison({ datasetId, topicId, schoolId }: { datasetId: string; topic
   if (error) return <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setAttempt(n => n + 1)}>Повторить сравнение</button></div>
   if (!data) return <p className="loading-message" role="status">Загружаем сравнение учебников…</p>
   return <>
+    {data.groups.length > 0 && <section className="textbook-cards" aria-label="Прирост по учебникам">{data.groups.map(group => <article key={group.textbook_id}><div className="textbook-card-heading"><span className="textbook-monogram">{group.textbook_id}</span><h2>Учебник {group.textbook_id}</h2></div><p className="textbook-gain">{signed.format(group.gain_avg)}<small>балла</small></p><p className="textbook-card-label">Средний прирост</p><dl><div><dt>Входной → итоговый</dt><dd>{value(group.pre_score_avg)} → {value(group.post_score_avg)}</dd></div><div><dt>Учеников</dt><dd>{value(group.student_count)}</dd></div></dl></article>)}</section>}
+    <p className="sample-note comparison-context">Карточки показывают средние по группам, график — разницу в сопоставимых группах. Наблюдаемые различия не доказывают влияние учебника.</p>
     <TextbookComparisonChart comparisons={data.comparisons} />
-    <ComparisonTables data={data} />
+    <details className="data-details"><summary>Таблицы и размеры сопоставимых групп</summary><ComparisonTables data={data} /></details>
   </>
 }
 
@@ -89,17 +91,17 @@ export default function Textbooks({ dataset, schoolId, topicId, changingSchool, 
 
   if (!dataset) return <section className="empty-state placeholder"><h2>Сначала откройте набор данных</h2><p>Откройте демо на «Обзоре», затем вернитесь к сравнению учебников.</p><button className="secondary-button" onClick={onOverview}>Перейти к обзору</button></section>
 
-  return <section aria-label="Анализ учебников">
+  return <section className="textbooks-workspace" aria-label="Анализ учебников">
     <div className="overview-toolbar"><div><h2>Сравнение учебников</h2><p>Результаты по одной теме в выбранном срезе</p></div><DatasetBadge dataset={dataset} /></div>
     <div className="textbook-filters">
       <label className="school-filter topic-filter">Тема<select aria-label="Тема" value={topicId} disabled={!topics?.length || changingSchool} onChange={event => onTopicChange(event.target.value)}>{!topics?.length && <option value="">{topics ? 'Нет тем' : 'Загрузка тем…'}</option>}{topics?.map(topic => <option key={topic.topic_id} value={topic.topic_id}>{topic.topic_id} · {topic.topic_name}</option>)}</select></label>
       <label className="school-filter">Школа<select aria-label="Школа" value={schoolId} disabled={changingSchool} onChange={event => onSchoolChange(event.target.value)}><option value="">Все школы</option>{dataset.school_ids.map(id => <option key={id} value={id}>{id}</option>)}</select></label>
     </div>
-    {topics?.some(topic => topic.topic_id === topicId) && <div className="topic-next-step"><p>Следующий шаг: проверьте часы для темы <strong>{topicId}</strong> в проекте плана.</p><button className="secondary-button" disabled={changingSchool} onClick={onPlan}>Перейти к плану этой темы</button></div>}
     {filterError && <div className="error-message" role="alert"><p>{filterError}</p><button className="secondary-button" disabled={changingSchool} onClick={onRetryFilter}>Повторить смену школы</button></div>}
     {error && <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setAttempt(n => n + 1)}>Повторить загрузку тем</button></div>}
     {!topics && !error && <p className="loading-message" role="status">Загружаем список тем…</p>}
     {topics?.length === 0 && <p className="empty-state">В наборе нет тем для сравнения.</p>}
     {changingSchool ? <p className="loading-message" role="status">Обновляем школу…</p> : topics?.some(topic => topic.topic_id === topicId) && <Comparison key={JSON.stringify([dataset.dataset_id, schoolId, topicId])} datasetId={dataset.dataset_id} schoolId={schoolId} topicId={topicId} />}
+    {topics?.some(topic => topic.topic_id === topicId) && <div className="topic-next-step"><div><span className="eyebrow">СЛЕДУЮЩИЙ ШАГ</span><p>Проверьте часы для темы <strong>{topicId}</strong> в проекте плана.</p></div><button className="primary-button" disabled={changingSchool} onClick={onPlan}>Перейти к плану этой темы<span aria-hidden="true">→</span></button></div>}
   </section>
 }

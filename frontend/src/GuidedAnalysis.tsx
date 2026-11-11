@@ -37,7 +37,7 @@ export function DemoGuide({ opened, topicSelected, compared, planned, busy, onDe
   opened: boolean; topicSelected: boolean; compared: boolean; planned: boolean; busy: boolean
   onDemo: () => void; onTopic: () => void; onCompare: () => void; onPlan: () => void
 }) {
-  return <details className="demo-guide" open={!opened}>
+  return <details className="demo-guide">
     <summary>Демо за четыре шага <span>От сложной темы до проекта плана</span></summary>
     <ol><li><span>{opened ? '✓' : '01'}</span><h3>Откройте данные</h3><p>Синтетический набор: математика, 7-й класс.</p><button disabled={busy || opened} onClick={onDemo}>Начать демо</button></li>
       <li><span>{topicSelected ? '✓' : '02'}</span><h3>Найдите сложную тему</h3><p>Посмотрите результат, порог и размер выборки.</p><button disabled={busy || !opened} onClick={onTopic}>Разобрать первую тему</button></li>
@@ -62,16 +62,17 @@ export default function TopicDetail({ dataset, topicId, schoolId, changingSchool
     return () => { ignore = true }
   }, [dataset.dataset_id, schoolId, attempt])
   const topic = data?.topics.find(topic => topic.topic_id === topicId)
-  return <section aria-label="Разбор темы" aria-busy={!data && !error || changingSchool}>
-    <button className="text-button" onClick={onOverview}>← К обзору</button>
+  return <section className="topic-detail" aria-label="Разбор темы" aria-busy={!data && !error || changingSchool}>
     <div className="overview-toolbar"><div><span className="eyebrow">{topicId} · РАЗБОР ТЕМЫ</span><h2>{topic?.topic_name ?? 'Загружаем тему…'}</h2></div><div className="overview-controls"><DatasetBadge dataset={dataset} /><label className="school-filter">Школа<select aria-label="Школа" disabled={changingSchool} value={schoolId} onChange={event => onSchoolChange(event.target.value)}><option value="">Все школы</option>{dataset.school_ids.map(id => <option key={id}>{id}</option>)}</select></label></div></div>
     {filterError && <div role="alert" className="error-message"><p>{filterError}</p><button className="secondary-button" onClick={onRetryFilter}>Повторить смену школы</button></div>}
     {error && <div role="alert" className="error-message"><p>{error}</p><button className="secondary-button" onClick={() => setAttempt(n => n + 1)}>Повторить загрузку темы</button></div>}
     {!data && !error && <p className="loading-message" role="status">Загружаем показатели темы…</p>}
     {data && !topic && <p className="empty-state">Тема отсутствует в текущем наборе. Выберите другую тему на обзоре.</p>}
-    {topic && data && <><AnalysisSummary topic={topic} threshold={data.mastery_threshold} plan={plan} />
+    {topic && data && <>
       <div className="metrics-grid"><article className="metric"><h3>Ниже порога {data.mastery_threshold}</h3><strong>{topic.scores.below_threshold_pct === null ? 'Нет данных' : `${display(topic.scores.below_threshold_pct)}%`}</strong><p>Доля итоговых результатов</p></article><article className="metric"><h3>Средний итоговый балл</h3><strong>{display(topic.scores.post_score_avg)}</strong><p>Из 100</p></article><article className="metric"><h3>Размер выборки</h3><strong>{display(topic.scores.result_count)}</strong><p>Результатов по теме</p></article></div>
       <div className="next-actions"><article><span className="eyebrow">СЛЕДУЮЩИЙ ШАГ</span><h3>Что показывают учебники?</h3><p>Сравните прирост по этой теме с учётом школы и входного уровня.</p><button className="primary-button" disabled={changingSchool} onClick={onCompare}>Сравнить учебники по теме</button></article><article><span className="eyebrow">ПРОЕКТ РЕШЕНИЯ</span><h3>Как можно изменить часы?</h3><p>Проверьте автоматический план и попробуйте ручной перенос с сохранением бюджета.</p><button className="secondary-button" disabled={changingSchool} onClick={onPlan}>Открыть план по теме</button></article></div>
+      <AnalysisSummary topic={topic} threshold={data.mastery_threshold} plan={plan} />
+      <button className="text-button" onClick={onOverview}>← К обзору</button>
     </>}
   </section>
 }

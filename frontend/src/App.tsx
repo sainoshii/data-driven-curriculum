@@ -183,13 +183,12 @@ export default function App() {
       <div className="brand"><span className="brand-symbol" aria-hidden="true"><i /><i /><i /></span><div>Data-Driven<span>Curriculum</span></div></div>
       <div className="workspace-label">ПАНЕЛЬ МЕТОДИСТА</div>
       <nav aria-label="Основная навигация">{sections.map(section => <button key={section.id} type="button" className={`nav-item ${active === section.id || active === 'topic-detail' && section.id === 'topics' ? 'active' : ''}`} aria-current={active === section.id ? 'page' : undefined} onClick={() => navigate(section.id)}><Icon name={section.icon} />{section.label}{active === section.id && <span className="active-dot" />}</button>)}</nav>
-      <div className="sidebar-bottom"><span className="version-tag">MVP</span><p>Решения для учебного плана,<br />основанные на данных.</p></div>
+      <div className="sidebar-bottom"><span className="sidebar-caption">ОТ ДАННЫХ К РЕШЕНИЮ</span><p>Найдите тему.<br />Проверьте основания.<br />Подготовьте план.</p><span className="sidebar-signature">Data-Driven Curriculum</span></div>
     </aside>
     <div className="workspace">
-      <header className="topbar"><span>Рабочее пространство</span><div className="dataset-status"><span />{demo.dataset ? 'Данные загружены' : 'Данные не загружены'}</div></header>
+      <header className="topbar"><span>Математика <span className="topbar-divider">/</span> 7 класс</span><div className={`dataset-status ${demo.dataset ? 'is-ready' : ''}`}><span />{demo.dataset ? demo.dataset.is_demo ? 'Демонстрационный набор' : 'Загруженный набор' : 'Набор не открыт'}</div></header>
       <main ref={mainRef} id="main" tabIndex={-1}>
-        {canGoBack && <button type="button" className="text-button workspace-back" onClick={() => window.history.back()}>← Назад</button>}
-        <div className="page-heading"><div><div className="breadcrumb">Панель методиста <span>/</span> {current.label}</div><h1>{current.label}</h1></div><span className="subject-tag">Математика · 7 класс</span></div>
+        <div className="page-heading"><div><div className="breadcrumb">ПАНЕЛЬ МЕТОДИСТА</div><h1>{current.label}</h1></div><div className="page-heading-aside">{canGoBack && <button type="button" className="text-button workspace-back" onClick={() => window.history.back()}>← Назад</button>}<span className="page-context">{active === 'overview' ? 'Найдите точку приложения усилий' : active === 'topics' ? 'От общей картины к отдельной теме' : active === 'textbooks' ? 'Сравните наблюдаемые результаты' : active === 'hours' ? 'Решение с сохранением бюджета' : 'Данные и следующий шаг'}</span></div></div>
         <div className={`overview-layout ${demo.overview ? 'has-results' : ''}`}>
         {active === 'overview' && receipt?.datasetId === demo.dataset?.dataset_id && receipt && <UploadReceipt receipt={receipt} onStart={() => { setReceipt(null); requestAnimationFrame(() => { const target = document.getElementById('analysis-start'); target?.focus({ preventScroll: true }); target?.scrollIntoView({ block: 'start' }) }) }} />}
         {active === 'overview' && <Overview
