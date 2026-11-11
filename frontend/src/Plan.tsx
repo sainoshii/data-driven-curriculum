@@ -1,5 +1,6 @@
 import { DatasetBadge } from './DatasetControls'
 import PlanScenario, { type ScenarioState } from './PlanScenario'
+import PlanSchoolContext from './PlanSchoolContext'
 import PlanComparison from './PlanComparison'
 import { useEffect, useRef, useState } from 'react'
 import { curriculumApi, type Dataset, type PlanData, type TransferRequest } from './data/curriculum'
@@ -22,6 +23,7 @@ export function PlanResult({ plan }: { plan: PlanData }) {
     <section className="plan-section" aria-labelledby="transfers-title"><h2 id="transfers-title">Откуда и куда переносятся часы</h2>
       {plan.transfers.length ? <ul className="transfer-list">{plan.transfers.map((transfer, index) => <li key={`${transfer.from_topic_id}:${transfer.to_topic_id}:${index}`}><div><span className="topic-code">{transfer.from_topic_id}</span>{names.get(transfer.from_topic_id) ?? transfer.from_topic_id}</div><strong>{number.format(transfer.hours)} ч →</strong><div><span className="topic-code">{transfer.to_topic_id}</span>{names.get(transfer.to_topic_id) ?? transfer.to_topic_id}</div></li>)}</ul> : <p className="sample-note">Переносов часов нет.</p>}
     </section>
+    {plan.school_id === null && plan.items.some(item => item.delta_hours > 0) && <PlanSchoolContext key={plan.dataset_id} plan={plan} />}
     <section className="plan-section" aria-labelledby="hours-table-title"><h2 id="hours-table-title">Часы и основания по темам</h2>
       <div className="table-scroll" role="region" aria-label="План часов по темам" tabIndex={0}><table className="plan-table"><caption>{plan.items.length} тем · {plan.school_id ?? 'Все школы'}</caption><thead><tr><th scope="col">Тема</th><th scope="col">Было</th><th scope="col">Предложено</th><th scope="col">Изменение</th><th scope="col">Основание</th></tr></thead><tbody>{plan.items.map(item => <tr key={item.topic_id}><th scope="row"><span className="topic-code">{item.topic_id}</span>{item.topic_name}</th><td>{number.format(item.current_hours)}</td><td>{number.format(item.proposed_hours)}</td><td className={item.delta_hours === 0 ? '' : 'hours-changed'}>{signed.format(item.delta_hours)}</td><td>{item.reason}</td></tr>)}</tbody><tfoot><tr><th scope="row">Итого</th><td>{number.format(plan.current_total_hours)}</td><td>{number.format(plan.proposed_total_hours)}</td><td>{signed.format(plan.proposed_total_hours - plan.current_total_hours)}</td><td>Общий бюджет плана</td></tr></tfoot></table></div>
     </section>

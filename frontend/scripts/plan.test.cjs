@@ -5,12 +5,13 @@ const path = require('node:path')
 const React = require('react')
 const { renderToStaticMarkup } = require('react-dom/server')
 
-let server, PlanResult, planMatchesScope, curriculumApi
+let server, PlanResult, planMatchesScope, curriculumApi, summarizeSchools
 before(async () => {
   const { createServer } = await import('vite')
   server = await createServer({ root: path.join(__dirname, '..'), server: { middlewareMode: true }, appType: 'custom' })
   ;({ PlanResult, planMatchesScope } = await server.ssrLoadModule('/src/Plan.tsx'))
   ;({ curriculumApi } = await server.ssrLoadModule('/src/data/curriculum.ts'))
+  ;({ summarizeSchools } = await server.ssrLoadModule('/src/PlanSchoolContext.tsx'))
 })
 after(async () => { await server?.close() })
 const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, '../../contracts/examples/demo-plan.json'), 'utf8'))
@@ -37,6 +38,19 @@ test('a plan belongs only to its dataset and school slice', () => {
   assert.equal(planMatchesScope(fixture, 'demo', ''), true)
   assert.equal(planMatchesScope(fixture, 'demo', 'S01'), false)
   assert.equal(planMatchesScope(fixture, 'other', ''), false)
+})
+
+test('school coverage includes the exact threshold and excludes small or empty groups', () => {
+  const cell = (school_id, result_count, below_threshold_pct, topic_id = 'T08') => ({
+    school_id, topic_id, scores: { result_count, below_threshold_pct, post_score_avg: null },
+  })
+  const result = summarizeSchools([
+    cell('S01', 20, 50), cell('S02', 200, 49.99), cell('S03', 19, 90),
+    cell('S04', 0, null), cell('S05', 200, 90, 'T09'),
+  ], 'T08')
+  assert.equal(result.difficult, 1)
+  assert.equal(result.comparable, 2)
+  assert.deepEqual(result.schools.map(school => school.below), [50, 49.99, null, null])
 })
 
 test('POST body and export URL use the requested slice and returned plan identity', async () => {
