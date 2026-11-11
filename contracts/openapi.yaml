@@ -166,6 +166,29 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/InvalidInput' }
 
+  /api/datasets/{dataset_id}/plans/{plan_id}/explanation-draft:
+    parameters:
+      - $ref: '#/components/parameters/DatasetId'
+      - name: plan_id
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/Id' }
+    post:
+      operationId: createPlanDraft
+      summary: Подготовить черновик пояснения к сохранённому плану
+      responses:
+        '200':
+          description: Редактируемый текст и его источник
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [text, source]
+                properties:
+                  text: { type: string }
+                  source: { type: string, enum: [openai, template] }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /api/datasets/{dataset_id}/plans/{plan_id}/export:
     parameters:
       - $ref: '#/components/parameters/DatasetId'

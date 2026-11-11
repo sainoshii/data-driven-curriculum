@@ -1,0 +1,57 @@
+.plan-explanation-draft {
+  margin: 18px 0;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.plan-explanation-draft > summary {
+  width: fit-content;
+  padding: 4px 0;
+  cursor: pointer;
+  color: var(--blue);
+  font-weight: 650;
+}
+
+.plan-explanation-draft .secondary-button {
+  margin: 12px 0 0;
+}
+
+.plan-draft-editor {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.plan-draft-editor label {
+  font-weight: 600;
+}
+
+.plan-draft-editor textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  line-height: 1.6;
+  color: inherit;
+  resize: vertical;
+}
+
+.plan-draft-editor textarea:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.plan-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.plan-draft-actions .secondary-button {
+  margin: 0;
+}
