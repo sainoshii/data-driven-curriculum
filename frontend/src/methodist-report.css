@@ -1,14 +1,14 @@
 .methodist-report-launcher { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .methodist-report-launcher [role=alert] { max-width: 360px; color: #8a3030; font-size: 12px; }
-body.report-document { margin: 0; background: #edf0f4; }
-.methodist-report-page { font: 14px/1.6 "Segoe UI", Arial, sans-serif; color: #202b3c; margin: 0 auto; padding: 24px; max-width: 1000px; }
+body.report-document { margin: 0; background: #f1f4f8; }
+.methodist-report-page { font: 14px/1.6 Inter, "Segoe UI", Arial, sans-serif; color: var(--ink); margin: 0 auto; padding: 28px; max-width: 1000px; }
 .report-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
-.report-toolbar button, .methodist-report-page > .report-warning button { font: inherit; background: #43589e; color: white; border: 0; border-radius: 6px; padding: 11px 16px; cursor: pointer; }
+.report-toolbar button, .methodist-report-page > .report-warning button { font: inherit; font-size: 12px; font-weight: 600; min-height: 44px; background: var(--blue); color: white; border: 0; border-radius: 7px; padding: 11px 16px; cursor: pointer; }
 .report-toolbar button:disabled { background: #8d97ae; cursor: default; }
 .report-toolbar p { font-size: 12px; color: #59677e; }
 .report-toolbar button:focus-visible { outline: 3px solid #7b8fcb; outline-offset: 3px; }
-.methodist-report { background: white; padding: 36px; box-shadow: 0 2px 12px #26334d12; }
-.methodist-report h1 { font-size: 29px; margin: 6px 0 22px; }
+.methodist-report { background: white; padding: 40px; box-shadow: 0 3px 20px #26334d08; }
+.methodist-report h1 { font-size: 32px; letter-spacing: -1px; margin: 6px 0 22px; }
 .methodist-report h2 { font-size: 19px; margin: 28px 0 12px; border-bottom: 1px solid #cdd5e2; padding-bottom: 8px; }
 .methodist-report h3 { font-size: 15px; margin: 18px 0 10px; }
 .methodist-report p { margin: 10px 0; line-height: 1.65; }
@@ -24,6 +24,7 @@ body.report-document { margin: 0; background: #edf0f4; }
 .report-budgets > div { padding: 14px; }
 .report-budgets dt { font-size: 12px; }
 .report-budgets dd { font-size: 24px; font-weight: 650; margin: 8px 0 0; }
+.report-budgets dd, .methodist-report table { font-variant-numeric: tabular-nums; }
 .report-budget-ok { font-weight: 600; }
 .methodist-report table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 14px 0; table-layout: fixed; }
 .methodist-report caption { text-align: left; font-weight: 600; margin: 12px 0 8px; }

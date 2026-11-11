@@ -1,7 +1,6 @@
 import { DatasetBadge } from './DatasetControls'
 import { useEffect, useState } from 'react'
 import { curriculumApi, type Dataset, type Scores, type TopicsData } from './data/curriculum'
-import './heatmap-drilldown.css'
 
 const number = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 })
 const value = (n: number | null | undefined) => n == null ? 'Нет данных' : number.format(n)
@@ -71,7 +70,7 @@ export default function Topics({ dataset, schoolId, changingSchool, filterError,
   const schools = schoolId ? [schoolId] : dataset.school_ids
   const cells = new Map(data?.heatmap.map(cell => [JSON.stringify([cell.school_id, cell.topic_id]), cell.scores]))
 
-  return <section aria-label="Анализ тем" aria-busy={loading || changingSchool}>
+  return <section className="topics-workspace" aria-label="Анализ тем" aria-busy={loading || changingSchool}>
     <div className="overview-toolbar">
       <div><h2>Сложность тем</h2><p>Доля результатов ниже порога, средний балл и размер выборки</p></div>
       <div className="overview-controls">
@@ -88,6 +87,7 @@ export default function Topics({ dataset, schoolId, changingSchool, filterError,
     {error && <div className="error-message" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setAttempt(n => n + 1)}>Повторить загрузку тем</button></div>}
     {(loading || changingSchool) && <p className="loading-message" role="status">Загружаем темы…</p>}
     {data && <>
+      <dl className="analysis-strip"><div><dt>Тем в учебном плане</dt><dd>{topics.length}</dd></div><div><dt>Школ в срезе</dt><dd>{schools.length}</dd></div><div><dt>Порог освоения</dt><dd>{value(data.mastery_threshold)}<small> / 100 баллов</small></dd></div></dl>
       <section className="heatmap-section" aria-labelledby="heatmap-title">
         <div className="section-heading"><h2 id="heatmap-title">Школы × темы</h2><span>Сложные темы слева</span></div>
         <p className="sample-note">Доля результатов с итоговым баллом строго ниже {value(data.mastery_threshold)}. Темнее — выше доля. Нажмите на процент, чтобы разобрать тему в этой школе.</p>
@@ -132,7 +132,7 @@ export default function Topics({ dataset, schoolId, changingSchool, filterError,
                     Сравнить учебники
                   </button>
                 </th>
-                <td>{percent(topic.scores.below_threshold_pct)}</td>
+                <td><span className="topic-risk-value">{percent(topic.scores.below_threshold_pct)}</span>{topic.scores.below_threshold_pct !== null && <span className="risk-track" aria-hidden="true"><span style={{ width: `${Math.max(0, Math.min(100, topic.scores.below_threshold_pct))}%` }} /></span>}</td>
                 <td>{value(topic.scores.post_score_avg)}</td>
                 <td>{value(topic.scores.result_count)}</td>
               </tr>)}

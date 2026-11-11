@@ -1,6 +1,5 @@
 import { useId, useState } from 'react'
 import type { TextbookComparisonData } from './data/curriculum'
-import './textbook-comparison-chart.css'
 
 type Pair = TextbookComparisonData['comparisons'][number]
 type ComparablePair = Pair & { gain_difference: number }
@@ -68,7 +67,7 @@ export default function TextbookComparisonChart({ comparisons }: { comparisons: 
   return <section className="comparison-chart" aria-labelledby="comparison-chart-title">
     <h2 id="comparison-chart-title">Разница в приросте, баллы</h2>
     <p className="comparison-chart-note">
-      Сопоставимые группы. Сравниваем прирост левого учебника с правым. Наведите курсор или нажмите на строку, чтобы увидеть размеры групп.
+      Сопоставимые группы. Разница — левый учебник минус правый. Размеры групп показаны под каждой строкой; нажмите, чтобы выделить сравнение.
     </p>
     {comparable.length > 0 && <>
       <div className="comparison-chart-scale" aria-hidden="true">

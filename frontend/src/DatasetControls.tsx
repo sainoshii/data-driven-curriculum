@@ -45,6 +45,7 @@ export default function DatasetControls({ hidden, opened = false, activeUpload, 
     {!opened && <span className="eyebrow">ОТ ДАННЫХ К УЧЕБНОМУ ПЛАНУ</span>}
     <h2 id="dataset-controls-title">{opened ? 'Данные для анализа' : 'Поймите, каким темам нужны часы'}</h2>
     {!opened && <p className="dataset-intro">Найдите сложные темы, сравните учебники и подготовьте обоснованный план — с сохранением бюджета часов.</p>}
+    {!opened && <ol className="launch-flow" aria-label="Путь от данных к решению"><li><span>01</span><strong>Найдите сложные темы</strong><small>По результатам учеников</small></li><li><span>02</span><strong>Проверьте учебники</strong><small>В сопоставимых группах</small></li><li><span>03</span><strong>Подготовьте план часов</strong><small>С основаниями и отчётом</small></li></ol>}
     {activeUpload && <div className="active-upload" role="status">
       <strong>Используются загруженные CSV</strong>
       <p>Результаты: <b>{activeUpload.results}</b> · Темы и часы: <b>{activeUpload.topics}</b></p>

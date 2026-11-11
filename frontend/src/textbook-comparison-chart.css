@@ -1,19 +1,20 @@
 .comparison-chart {
   margin-top: 28px;
-  padding: 20px;
-  border: 1px solid #dce3f1;
+  padding: 26px;
+  border: 1px solid var(--line);
   border-radius: 12px;
   background: #fff;
 }
 
 .comparison-chart h2 {
-  font-size: 18px;
+  font-size: 20px;
+  letter-spacing: -.4px;
 }
 
 .comparison-chart-note {
   margin: 8px 0 16px;
-  color: #536176;
-  font-size: 13px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .comparison-chart-pairs,
@@ -39,18 +40,19 @@
   display: grid;
   width: 100%;
   gap: 6px;
-  padding: 7px 11px;
-  border: 1px solid transparent;
+  padding: 16px;
+  border: 1px solid var(--line);
+  margin-top: 10px;
   border-radius: 8px;
-  background: transparent;
+  background: #fcfdff;
   color: inherit;
   text-align: left;
 }
 
 .comparison-chart-row:focus-visible,
 .comparison-chart-row[aria-pressed="true"] {
-  border-color: #cbd6f4;
-  background: #f4f7ff;
+  border-color: #9bb4d8;
+  background: #f1f6ff;
 }
 
 .comparison-chart-labels,
@@ -72,13 +74,13 @@
 
 .comparison-chart-higher,
 .comparison-chart-missing li span {
-  color: #536176;
-  font-size: 13px;
+  color: var(--muted);
+  font-size: 11px;
 }
 
 .comparison-chart-track {
   position: relative;
-  height: 12px;
+  height: 8px;
   border-radius: 4px;
   background: linear-gradient(90deg, #edf3f5 50%, #edf0fb 50%);
 }
@@ -95,7 +97,7 @@
   position: absolute;
   inset-block: 2px;
   border-radius: 2px;
-  background: #5264c3;
+  background: var(--blue);
 }
 
 .comparison-chart-negative { background: #237a76; }
@@ -109,26 +111,19 @@
   display: flex;
   flex-wrap: wrap;
   gap: 2px 12px;
-  visibility: hidden;
-  color: #475670;
-  font-size: 12px;
+  visibility: visible;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 3px;
   overflow-wrap: anywhere;
 }
 
-.comparison-chart-row:focus-visible .comparison-chart-counts,
-.comparison-chart-row[aria-pressed="true"] .comparison-chart-counts {
-  visibility: visible;
-}
-
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .comparison-chart-row:hover {
     border-color: #cbd6f4;
     background: #f4f7ff;
   }
 
-  .comparison-chart-row:hover .comparison-chart-counts {
-    visibility: visible;
-  }
 }
 
 .comparison-chart-missing li {
@@ -137,6 +132,6 @@
 }
 
 @media (max-width: 480px) {
-  .comparison-chart { padding: 14px; }
+  .comparison-chart { padding: 20px 16px; }
   .comparison-chart-labels > span { column-gap: 8px; }
 }
